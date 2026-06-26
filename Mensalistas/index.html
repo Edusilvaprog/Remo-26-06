@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#E52E87">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Portal de agendamento exclusivo para mensalistas da Remoterapia.">
+    <title>Agendamento · Remoterapia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.onerror = function(msg, src, line, col, err) {
+            document.body.innerHTML += '<div style="position:fixed;top:0;left:0;width:100%;background:red;color:white;z-index:9999;padding:10px;font-size:14px;font-family:sans-serif">Erro PC: ' + msg + ' (Linha ' + line + ')</div>';
+        };
+        if(window.tailwind) {
+            tailwind.config = {
+                theme: { extend: {
+                colors: {
+                    remopink:  { light:'#f472b6', DEFAULT:'#E52E87', dark:'#be185d' },
+                    remoblue:  { light:'#38bdf8', DEFAULT:'#1D70B8', dark:'#1e3a8a' },
+                    remogreen: { light:'#a3e635', DEFAULT:'#76C043', dark:'#4d7c0f'  }
+                },
+                boxShadow: { 'glow':'0 0 24px rgba(229,46,135,0.45)', 'float':'0 20px 40px -10px rgba(29,112,184,0.18)' },
+                keyframes: {
+                    'fade-up':   { '0%':{ opacity:'0', transform:'translateY(14px)' }, '100%':{ opacity:'1', transform:'translateY(0)' } },
+                    'pop':       { '0%':{ transform:'scale(0.92)' }, '60%':{ transform:'scale(1.04)' }, '100%':{ transform:'scale(1)' } },
+                    'pulse-red': { '0%,100%':{ boxShadow:'0 0 0 0 rgba(239,68,68,0.4)' }, '60%':{ boxShadow:'0 0 0 8px rgba(239,68,68,0)' } },
+                    'slide-up':  { '0%':{ transform:'translateY(100%)' }, '100%':{ transform:'translateY(0)' } }
+                },
+                animation: {
+                    'fade-up':'fade-up .3s ease both',
+                    'pop':'pop .25s ease both',
+                    'pulse-red':'pulse-red 2s infinite',
+                    'slide-up':'slide-up .35s cubic-bezier(0.34,1.56,0.64,1) both'
+                }
+            }}
+        }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+        *, *::before, *::after { box-sizing: border-box; }
+        ::-webkit-scrollbar { display: none; }
+
+        body {
+            font-family: 'Nunito', system-ui, sans-serif;
+            background: linear-gradient(150deg, #e0f2fe 0%, #bae6fd 45%, #fce7f3 100%);
+            background-attachment: fixed;
+            color: #1e293b;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-card {
+            background: rgba(255,255,255,0.78);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(255,255,255,0.88);
+            border-radius: 1.25rem;
+            padding: 1rem;
+            box-shadow: 0 6px 24px -4px rgba(29,112,184,0.10);
+        }
+        .custom-input {
+            width:100%; padding:.85rem 1rem;
+            background:rgba(255,255,255,0.88); border:2px solid #bae6fd;
+            border-radius:.9rem; font-weight:700; font-size:.9rem; color:#0f172a;
+            outline:none; transition:border-color .2s, box-shadow .2s;
+        }
+        .custom-input:focus { border-color:#E52E87; box-shadow:0 0 0 4px rgba(229,46,135,.18); background:#fff; }
+        .pin-input { letter-spacing:.6em; font-size:1.3rem; text-align:center; }
+
+        /* Toast */
+        .toast {
+            position:fixed; top:max(env(safe-area-inset-top,0px) + 1rem, 1.2rem); left:50%;
+            transform:translateX(-50%) translateY(-16px); opacity:0;
+            width:max-content; max-width:min(90vw,26rem);
+            background:rgba(10,18,36,.96); color:#f8fafc;
+            border:1px solid rgba(255,255,255,.12); border-radius:9999px;
+            padding:.6rem 1.1rem; box-shadow:0 12px 28px rgba(0,0,0,.28);
+            z-index:99999; display:flex; align-items:center; gap:.5rem;
+            font-weight:800; font-size:.8rem;
+            transition:all .3s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none;
+        }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+            width:100%; max-width:28rem;
+            background:rgba(255,255,255,0.92); backdrop-filter:blur(24px);
+            -webkit-backdrop-filter:blur(24px);
+            border-top:1.5px solid rgba(255,255,255,0.9);
+            box-shadow:0 -8px 30px rgba(29,112,184,0.12);
+            padding-bottom:env(safe-area-inset-bottom, 0.5rem);
+            z-index:900;
+        }
+        .nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:.6rem .3rem .4rem; gap:2px; cursor:pointer; transition:all .2s; border:none; background:transparent; }
+        .nav-btn .nav-icon { font-size:1.2rem; transition:transform .2s; }
+        .nav-btn .nav-label { font-size:.55rem; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+        .nav-btn.active .nav-icon { transform:scale(1.15); }
+        .nav-btn.active .nav-label { color:#E52E87; }
+        .nav-btn:not(.active) .nav-label { color:#94a3b8; }
+
+        /* Stars Rating */
+        .star-btn { font-size:1.8rem; cursor:pointer; transition:transform .15s; border:none; background:transparent; padding:.1rem; }
+        .star-btn:hover, .star-btn.active { transform:scale(1.2); }
+
+        /* Photo Slots */
+        .foto-slot { position:relative; aspect-ratio:1; cursor:pointer; }
+        .foto-slot input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; z-index:2; }
+        .foto-slot .slot-inner {
+            width:100%; height:100%;
+            background:#f8fafc; border:2.5px dashed #cbd5e1;
+            border-radius:1rem; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; transition:all .2s; overflow:hidden;
+        }
+        .foto-slot.filled .slot-inner { border-color:#76C043; border-style:solid; }
+        .foto-slot img { width:100%; height:100%; object-fit:cover; }
+
+        /* Calendar */
+        .cal-day {
+            aspect-ratio:1; display:flex; flex-direction:column; align-items:center;
+            justify-content:center; border-radius:.75rem; font-size:.72rem; font-weight:900;
+            cursor:pointer; transition:all .18s; position:relative;
+        }
+        .cal-day.available { background:rgba(118,192,67,.15); color:#4d7c0f; border:1.5px solid rgba(118,192,67,.4); }
+        .cal-day.available:hover { background:rgba(118,192,67,.3); transform:scale(1.08); }
+        .cal-day.booked { background:rgba(229,46,135,.12); color:#be185d; border:1.5px solid rgba(229,46,135,.3); }
+        .cal-day.closed { background:rgba(148,163,184,.1); color:#cbd5e1; border:1.5px solid rgba(148,163,184,.15); cursor:default; }
+        .cal-day.today { box-shadow:0 0 0 2.5px #E52E87; }
+        .cal-day.past { opacity:.4; cursor:default; }
+        .cal-day .dot { width:5px; height:5px; border-radius:9999px; position:absolute; bottom:3px; }
+
+        /* Perfil Avatar */
+        .avatar-wrap { position:relative; display:inline-block; }
+        .avatar-wrap input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; border-radius:9999px; z-index:2; }
+
+        /* WA Button */
+        .wa-btn {
+            position:fixed; bottom:5.5rem; right:1rem;
+            width:3rem; height:3rem; background:#25D366; border-radius:9999px;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 4px 18px rgba(37,211,102,.5); border:2.5px solid white;
+            z-index:850; transition:transform .2s;
+        }
+        .wa-btn:hover { transform:translateY(-3px) scale(1.06); }
+        .error-border { border-color: #ef4444 !important; }
+        .cloud-sync-dot {
+            display: inline-block; width: 8px; height: 8px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.55); vertical-align: middle; margin-left: 4px;
+        }
+        .cloud-sync-dot[data-status="ok"] { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.9); }
+        .cloud-sync-dot[data-status="syncing"] { background: #fbbf24; animation: cloud-pulse 1s ease-in-out infinite; }
+        .cloud-sync-dot[data-status="error"] { background: #f87171; box-shadow: 0 0 6px rgba(248, 113, 113, 0.8); }
+        .cloud-sync-dot[data-status="offline"] { background: #94a3b8; }
+        @keyframes cloud-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden">
+
+<div id="toast" class="toast"><span id="t-icon">✅</span><span id="t-msg">Mensagem</span></div>
+<div id="root" class="max-w-md mx-auto min-h-screen flex flex-col relative px-4 pt-5 pb-28"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const SUPORTE_WA   = '5513991052169';
+const DEFAULT_URL  = 'https://tgfatoxwhxazecpernyb.supabase.co';
+const DEFAULT_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnZmF0b3h3aHhhemVjcGVybnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NzQ1MTksImV4cCI6MjA5NjA1MDUxOX0.mJvqXLGMLc75zrdRsZ1zhsi6XvBx6IIUWDecdxYT7Qk';
+const SYNC_KEY     = 'plorix_sync_config';
+const SESSION_KEY  = 'plorix_client_session';
+const PROFILE_KEY  = 'plorix_client_profile';
+const NOTIF_KEY    = 'plorix_notifications';
+const LOCAL_DB_KEY = 'plorix_gestao_db'; // mesmo key do App Gestao para compatibilidade
+
+const Sync = {
+    cfg: () => { try { const r=localStorage.getItem(SYNC_KEY); if(r) return JSON.parse(r); } catch(e){} return {url:DEFAULT_URL,anonKey:DEFAULT_KEY,enabled:true}; },
+    hdr: () => { const c=Sync.cfg(); return { apikey:c.anonKey, Authorization:'Bearer '+c.anonKey, 'Content-Type':'application/json' }; }
+};
+
+// ═══════════════════════════════════════════════
+// LOCAL DB — salva imediatamente, igual ao App Gestao
+// ═══════════════════════════════════════════════
+const DB = {
+    // Le o banco local (shared com App Gestao)
+    load() {
+        try {
+            const raw = localStorage.getItem(LOCAL_DB_KEY);
+            if(raw) return JSON.parse(raw);
+        } catch(e){}
+        return {};
+    },
+    // Salva APENAS os campos que o client gerencia, sem sobrescrever o resto
+    save() {
+        try {
+            const current = DB.load();
+            current.assinantes  = State.assinantes;
+            current.agendamentos = State.agendamentos;
+            current.caiaques    = State.caiaques.length ? State.caiaques : (current.caiaques || []);
+            localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(current));
+        } catch(e){ console.warn('DB.save error:', e); }
+    },
+    // Carrega estado inicial do banco local para o State
+    hydrate() {
+        const db = DB.load();
+        if(Array.isArray(db.caiaques)   && db.caiaques.length)   State.caiaques    = db.caiaques;
+        if(Array.isArray(db.assinantes) && db.assinantes.length) {
+            State.assinantes  = db.assinantes;
+            if (State.assinante) {
+                const u = State.assinantes.find(x => x.id === State.assinante.id);
+                if (u && u.bloqueado) {
+                    State.assinante = null;
+                    localStorage.removeItem(SESSION_KEY);
+                    State.currentPage = 'login';
+                } else if (u) {
+                    State.assinante = { ...u, ativo: true };
+                }
+            }
+        }
+        if(Array.isArray(db.agendamentos))                         State.agendamentos = db.agendamentos;
+    }
+};
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const State = {
+    assinante:    null,
+    caiaques:     [],
+    agendamentos: [],
+    avaliacoes:   [],
+    notifications:[],
+    currentPage:  'login',
+    calMonth:     new Date(),
+    bookingForm:  { data:'', horario:'', caiaqueId:'' },
+    fotosPend:    null,
+    ratingForm:   { bookingId:null, stars:0, comment:'' },
+    profileData:  { avatar:null, plano:'Mensalista', vencimento:'' },
+    diasFechados: [],
+    assinantes:   [],
+    adminMode:    false,
+    _tutorialStep: 0,
+    adminClientFilter: 'all', // 'all', 'ativos', 'vencidos'
+    cloudStatus: 'ok' // 'ok', 'syncing', 'error', 'offline'
+};
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+const U = {
+    toast(msg, type='success') {
+        const el=document.getElementById('toast'), icons={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
+        document.getElementById('t-icon').innerText = icons[type]||'✅';
+        document.getElementById('t-msg').innerText  = msg;
+        el.classList.add('show'); clearTimeout(U._tt);
+        U._tt = setTimeout(()=>el.classList.remove('show'), 3400);
+    },
+    // [XSS] Funcao de sanitizacao: escapa caracteres HTML perigosos
+    // antes de renderizar qualquer dado externo via innerHTML
+    sanitize(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+    async hash(plain) {
+        if(window.crypto&&crypto.subtle){
+            try { const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(plain)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); } catch(e){}
+        }
+        let hash = 0;
+        for (let i = 0; i < plain.length; i++) {
+            const chr = plain.charCodeAt(i);
+            hash = ((hash << 5) - hash) + chr;
+            hash |= 0;
+        }
+        return hash.toString(16);
+    },
+    fmtDate(ds) {
+        const d=new Date(ds+'T12:00:00');
+        return d.toLocaleDateString('pt-BR',{day:'numeric',month:'short',weekday:'short'}).toUpperCase();
+    },
+    fmtDateLong(ds) {
+        const d=new Date(ds+'T12:00:00');
+        return d.toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});
+    },
+    weekRange(d) {
+        const dt=new Date(d), day=dt.getDay(), diff=dt.getDate()-day+(day===0?-6:1);
+        const s=new Date(dt.setDate(diff)); s.setHours(0,0,0,0);
+        const e=new Date(s); e.setDate(e.getDate()+6); e.setHours(23,59,59,999);
+        return {start:s,end:e};
+    },
+    waLink(msg) { return `https://wa.me/${SUPORTE_WA}?text=${encodeURIComponent(msg)}`; },
+    readFile(file) {
+        return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(file); });
+    },
+    monthName(d) { return d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase(); },
+    daysInMonth(y,m) { return new Date(y,m+1,0).getDate(); },
+    todayStr() { return new Date().toISOString().split('T')[0]; },
+    fmtPhone(t) {
+        if(!t) return '';
+        const s = t.replace(/\D/g, '');
+        if(s.length === 11) return `(${s.substring(0,2)}) ${s.substring(2,7)}-${s.substring(7)}`;
+        if(s.length === 10) return `(${s.substring(0,2)}) ${s.substring(2,6)}-${s.substring(6)}`;
+        return t;
+    },
+    maskPhone(input) {
+        let v = input.value.replace(/\D/g, '');
+        if (v.length > 11) v = v.substring(0, 11);
+        if (v.length > 2) v = `(${v.substring(0, 2)}) ${v.substring(2)}`;
+        if (v.length > 10) v = `${v.substring(0, 10)}-${v.substring(10)}`;
+        else if (v.length > 9) v = `${v.substring(0, 9)}-${v.substring(9)}`;
+        input.value = v;
+    },
+    // Calcula a proxima data de vencimento a partir do dia escolhido, sem bug de fuso/overflow
+    calcVencimento(dia) {
+        const hoje = new Date();
+        const ano  = hoje.getFullYear();
+        const mes  = hoje.getMonth(); // 0-indexed
+        // Tenta criar a data no mes atual
+        let d = new Date(ano, mes, dia, 12, 0, 0);
+        // Se ja passou (ou dia invalido no mes, ex: dia 31 em abril), vai para o proximo mes
+        if(d <= hoje) d = new Date(ano, mes + 1, dia, 12, 0, 0);
+        // Formata como YYYY-MM-DD sem depender de UTC
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
+    }
+};
+
+// ═══════════════════════════════════════════════
+// PUSH NOTIFICATIONS
+// ═══════════════════════════════════════════════
+const Notif = {
+    async requestPermission() {
+        if(!('Notification' in window)) return false;
+        if(Notification.permission==='granted') return true;
+        const perm = await Notification.requestPermission();
+        return perm==='granted';
+    },
+    async send(title, body, icon='./logo.png') {
+        if(Notification.permission!=='granted') return;
+        try { new Notification(title, { body, icon, badge:icon, tag:'remoterapia-agend' }); } catch(e){}
+    },
+    save(n) {
+        const list = Notif.load();
+        list.unshift({ id:Date.now(), ...n, read:false, time:new Date().toISOString() });
+        localStorage.setItem(NOTIF_KEY, JSON.stringify(list.slice(0,30)));
+    },
+    load() { try { return JSON.parse(localStorage.getItem(NOTIF_KEY)||'[]'); } catch(e){ return []; } },
+    unreadCount() { return Notif.load().filter(n=>!n.read).length; },
+    markAllRead() {
+        const list = Notif.load().map(n=>({...n, read:true}));
+        localStorage.setItem(NOTIF_KEY, JSON.stringify(list));
+    },
+    // Simula recebimento de notificação do admin (em produção viria do Supabase Realtime)
+    simulateAdminAction(type, bookingData) {
+        const msgs = {
+            confirmado: { title:'✅ Reserva Confirmada!', body:`Sua reserva para ${U.fmtDate(bookingData.data_reserva)} às ${bookingData.horario_reserva.substring(0,5)} foi confirmada.` },
+            cancelado:  { title:'❌ Reserva Recusada', body:`Sua reserva para ${U.fmtDate(bookingData.data_reserva)} foi recusada pelo administrador.` }
+        };
+        const m = msgs[type];
+        if(m) { Notif.send(m.title, m.body); Notif.save({title:m.title, body:m.body, type}); }
+    }
+};
+
+// ═══════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════
+const API = {
+    // Carrega dados da nuvem — so usado no boot e em refresh manual
+    async loadData() {
+        State.cloudStatus = 'syncing'; A.render();
+        const c=Sync.cfg(), base=c.url.replace(/\/$/,''), h=Sync.hdr();
+        try {
+            const rG = await fetch(base+'/rest/v1/plorix_sync?id=eq.2&select=payload',{headers:h});
+            if(rG.ok){ 
+                const rows=await rG.json(); const p=rows[0]?.payload; 
+                if(p && typeof p==='object' && Object.keys(p).length>0) {
+                    if(Array.isArray(p.caiaques)    && p.caiaques.length)    State.caiaques    = p.caiaques;
+                    if(Array.isArray(p.assinantes)  && p.assinantes.length) {
+                        State.assinantes  = p.assinantes;
+                        if (State.assinante) {
+                            const u = State.assinantes.find(x => x.id === State.assinante.id);
+                            if (u && u.bloqueado) {
+                                State.assinante = null;
+                                localStorage.removeItem(SESSION_KEY);
+                                State.currentPage = 'login';
+                                U.toast('Sua conta foi suspensa.','error');
+                            } else if (u) {
+                                State.assinante = { ...u, ativo: true };
+                                localStorage.setItem(SESSION_KEY, JSON.stringify(State.assinante));
+                            }
+                        }
+                    }
+                    if(Array.isArray(p.agendamentos))                         State.agendamentos = p.agendamentos;
+                    State.cloudPayload = p;
+                    DB.save();
+                    if (State.currentPage !== 'login') A.render();
+                }
+                State.cloudStatus = 'ok';
+            } else {
+                State.cloudStatus = 'error';
+            }
+        } catch(e){ 
+            State.cloudStatus = 'offline';
+        }
+        if(!State.caiaques.length || !State.assinantes.length) DB.hydrate();
+        if (State.cloudPayload && Array.isArray(State.cloudPayload.diasFechados)) {
+            State.diasFechados = State.cloudPayload.diasFechados;
+        } else {
+            State.diasFechados = [];
+        }
+    },
+
+    save() {
+        DB.save();
+    },
+
+    async sendTicket(type, data) {
+        State.cloudStatus = 'syncing'; A.render();
+        const c=Sync.cfg(), base=c.url.replace(/\/$/,''), h=Sync.hdr();
+        const ticketId = 1000 + Math.floor(Math.random() * 900000);
+        const row = { id: ticketId, payload: { type, data, assinanteId: State.assinante?.id }, updated_at: new Date().toISOString() };
+        try {
+            await fetch(base+'/rest/v1/plorix_sync?on_conflict=id', {
+                method:'POST', headers:{...h, Prefer:'return=minimal,resolution=merge-duplicates'},
+                body:JSON.stringify([row])
+            });
+            State.cloudStatus = 'ok';
+        } catch(e) {
+            State.cloudStatus = 'offline';
+        }
+        A.render();
+    },
+
+    async auth(tel, pin) {
+        const phone=tel.replace(/\D/g,'');
+        
+        try {
+            const h = await U.hash(pin);
+            const user = State.assinantes.find(a => String(a.telefone) === phone && String(a.senhaHash) === String(h) && a.bloqueado !== true);
+            if (user) return { ...user, ativo: true };
+        } catch(e) {}
+        return null;
+    },
+    async createBooking(b) {
+        State.agendamentos.push(b);
+        DB.save();
+        await API.sendTicket('agendamento_request', b);
+        return true;
+    },
+    async cancelBooking(id) {
+        const ag = State.agendamentos.find(a=>a.id===id);
+        if(ag) { 
+            ag.status = 'cancelado'; 
+            DB.save(); 
+            await API.sendTicket('agendamento_request', ag);
+        }
+        return true;
+    }
+};
+
+// ═══════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════
+const A = {
+    async login() {
+        const telEl = document.getElementById('l-tel');
+        const pinEl = document.getElementById('l-pin');
+        const tel = telEl?.value.trim() || '';
+        const pin = pinEl?.value.trim() || '';
+        
+        telEl.classList.remove('error-border');
+        pinEl.classList.remove('error-border');
+        
+        if(!tel){ telEl.classList.add('error-border'); U.toast('Informe o telefone.','warning'); return; }
+        if(pin.length!==6){ pinEl.classList.add('error-border'); U.toast('PIN de 6 dígitos.','warning'); return; }
+        
+        const btn=document.getElementById('btn-login');
+        if(btn){ btn.innerText='Entrando...'; btn.disabled=true; }
+        
+        const user=await API.auth(tel,pin);
+        if(user){
+            State.assinante=user;
+            localStorage.setItem(SESSION_KEY,JSON.stringify(user));
+            const saved=localStorage.getItem(PROFILE_KEY);
+            if(saved) try{ State.profileData={...State.profileData,...JSON.parse(saved)}; }catch(e){}
+            await Notif.requestPermission();
+            U.toast(`Bem-vinda(o), ${user.nome.split(' ')[0]}! 🌊`);
+            
+            if(user.precisa_trocar_senha) {
+                await A.goTo('forcePasswordChange');
+            } else {
+                await A.goTo('home');
+            }
+        } else {
+            U.toast('Telefone ou senha incorretos.','error');
+            if(btn){ btn.innerText='Entrar'; btn.disabled=false; }
+        }
+    },
+    logout() {
+        if(!confirm('Deseja sair?')) return;
+        State.assinante=null; State.caiaques=[]; State.agendamentos=[]; State.adminMode=false;
+        localStorage.removeItem(SESSION_KEY);
+        A.goTo('login');
+    },
+    async goTo(page) {
+        if (State.fotosPend && (page === 'agendar' || page === 'calendario')) {
+            U.toast('Resolva a vistoria pendente para poder agendar!','error');
+            return;
+        }
+        State.currentPage=page;
+        const pullPages = ['home','calendario','perfil','pagamento'];
+        if(pullPages.includes(page)) {
+            API.loadData().then(()=>A.render()).catch(()=>{});
+        }
+        A.render();
+        window.scrollTo({top:0,behavior:'smooth'});
+    },
+    weekCount() {
+        if(!State.assinante) return 0;
+        const {start,end}=U.weekRange(new Date());
+        return State.agendamentos.filter(a=>{
+            if(a.assinante_id!==State.assinante.id||a.status==='cancelado'||a.status==='recusado'||a.criado_por_admin===true) return false;
+            const d=new Date(a.data_reserva+'T12:00:00');
+            return d>=start&&d<=end;
+        }).length;
+    },
+    async saveNewPassword() {
+        const pin = document.getElementById('new-pin')?.value.trim();
+        if(!pin || pin.length !== 6) { U.toast('O PIN deve ter 6 dígitos', 'warning'); return; }
+        
+        const newHash = await U.hash(pin);
+        State.assinante.senhaHash = newHash;
+        State.assinante.precisa_trocar_senha = false;
+        
+        const c = State.assinantes.find(x => x.id === State.assinante.id);
+        if(c) {
+            c.senhaHash = newHash;
+            c.precisa_trocar_senha = false;
+            delete c.senha_provisoria;
+        }
+        
+        localStorage.setItem(SESSION_KEY, JSON.stringify(State.assinante));
+        DB.save();
+        
+        await API.sendTicket('password_change', { newHash });
+        
+        U.toast('Senha cadastrada com sucesso!');
+        if(State.assinante.isAdmin) {
+            A.goTo('roleSelect');
+        } else {
+            A.goTo('home');
+        }
+    },
+    openChangePassword() {
+        document.body.insertAdjacentHTML('beforeend',`
+            <div id="modal-change-password" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:1.5rem;width:100%;max-width:26rem;">
+                    <h2 style="font-weight:900;text-transform:uppercase;color:#0f172a;margin-bottom:1rem;text-align:center">Alterar Senha</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-[9px] font-bold text-slate-400 ml-1 mb-0.5 uppercase tracking-widest">Senha Atual</p>
+                            <input type="password" id="cp-old" class="custom-input !py-2 !text-sm" placeholder="PIN atual (6 dígitos)" maxlength="6">
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-bold text-slate-400 ml-1 mb-0.5 uppercase tracking-widest">Nova Senha</p>
+                            <input type="password" id="cp-new" class="custom-input !py-2 !text-sm" placeholder="Novo PIN (6 dígitos)" maxlength="6">
+                        </div>
+                        <div style="display:flex;gap:.5rem;margin-top:1rem">
+                            <button onclick="document.getElementById('modal-change-password').remove()" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black uppercase text-xs">Cancelar</button>
+                            <button id="btn-change-pwd" onclick="A.saveChangedPassword()" class="flex-1 py-3 bg-remopink text-white rounded-xl font-black uppercase text-xs">Salvar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`);
+    },
+    async saveChangedPassword() {
+        const oldEl = document.getElementById('cp-old');
+        const newEl = document.getElementById('cp-new');
+        const oldPin = oldEl?.value.trim();
+        const newPin = newEl?.value.trim();
+        
+        oldEl?.classList.remove('error-border');
+        newEl?.classList.remove('error-border');
+        
+        // [SEGURANCA] Comparamos hashes SHA-256, nunca texto plano
+        const oldHash = await U.hash(oldPin);
+        const currentHash = State.assinante.senhaHash;
+        
+        let hasErr = false;
+        if(oldHash !== currentHash) { oldEl?.classList.add('error-border'); hasErr=true; U.toast('Senha atual incorreta.', 'error'); }
+        if(!newPin || newPin.length !== 6) { newEl?.classList.add('error-border'); hasErr=true; U.toast('Nova senha deve ter 6 digitos.', 'warning'); }
+        if(hasErr) return;
+        
+        const btn = document.getElementById('btn-change-pwd');
+        if(btn) { btn.innerText = 'Salvando...'; btn.disabled = true; }
+        
+        // [SEGURANCA] Salva apenas o hash, remove campo legado de texto plano
+        const newHash = await U.hash(newPin);
+        State.assinante.senhaHash = newHash;
+        delete State.assinante.senha;
+        const c = State.assinantes.find(x => x.id === State.assinante.id);
+        if(c) { c.senhaHash = newHash; delete c.senha; }
+        
+        localStorage.setItem(SESSION_KEY, JSON.stringify(State.assinante));
+        API.save();
+        await API.sendTicket('password_change', { newHash });
+        
+        document.getElementById('modal-change-password')?.remove();
+        U.toast('Senha atualizada com sucesso!');
+    },
+    pendingPhotos() {
+        if(!State.assinante) return [];
+        return State.agendamentos.filter(a=>a.assinante_id===State.assinante.id&&a.status==='concluido'&&!a.fotos_enviadas);
+    },
+    pendingRatings() {
+        if(!State.assinante) return [];
+        return State.agendamentos.filter(a=>a.assinante_id===State.assinante.id&&a.status==='concluido'&&a.fotos_enviadas&&!a.avaliado);
+    },
+    kayakAvail(id, ds, ts) {
+        const c=State.caiaques.find(x=>x.id===id);
+        if(!c||c.status==='inoperante') return false;
+        const rt=new Date(`${ds}T${ts}:00`);
+        return !State.agendamentos.some(a=>{
+            if(a.caiaque_id!==id||a.status==='cancelado'||a.status==='concluido') return false;
+            return Math.abs(rt-new Date(`${a.data_reserva}T${a.horario_reserva}`))/60000<90;
+        });
+    },
+    selDate(v){ State.bookingForm.data=v; State.bookingForm.horario=''; State.bookingForm.caiaqueId=''; A.render(); },
+    selTime(v){ State.bookingForm.horario=v; State.bookingForm.caiaqueId=''; A.render(); },
+    selKayak(v){ State.bookingForm.caiaqueId=v; A.render(); },
+    async submitBooking() {
+        const {data,horario,caiaqueId}=State.bookingForm;
+        if(!data||!horario||!caiaqueId){ U.toast('Selecione data, horário e embarcação.','warning'); return; }
+        if(!document.getElementById('termos-uso')?.checked){ U.toast('Aceite os termos.','warning'); return; }
+        if(A.weekCount()>=2){ U.toast('Limite de 2 reservas semanais atingido.','error'); return; }
+        const btn=document.getElementById('btn-sub');
+        if(btn){ btn.innerText='Enviando...'; btn.disabled=true; }
+        const nb={
+            id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),
+            assinante_id:State.assinante.id, assinante_nome:State.assinante.nome,
+            caiaque_id:caiaqueId, data_reserva:data, horario_reserva:horario,
+            status:'pendente', fotos_enviadas:false, avaliado:false, duracao_horas:0,
+            created_at:new Date().toISOString()
+        };
+        const ok=await API.createBooking(nb);
+        if(ok||State.assinante.id==='test-user-id'){
+            State.bookingForm={data:'',horario:'',caiaqueId:''};
+            Notif.save({title:'🛶 Agendamento Enviado!',body:`Reserva para ${U.fmtDate(data)} às ${horario.substring(0,5)} aguarda confirmação.`,type:'pendente'});
+            U.toast('Solicitação enviada! Aguarde confirmação. 🛶');
+            await A.goTo('home');
+        } else {
+            U.toast('Erro ao enviar. Tente novamente.','error');
+            if(btn){ btn.innerText='Confirmar Agendamento'; btn.disabled=false; }
+        }
+    },
+    async cancelReservation(id) {
+        const ag=State.agendamentos.find(x=>x.id===id); if(!ag) return;
+        const isGuardaria = State.assinante?.tipo_plano === 'guardaria';
+        const multa = isGuardaria ? 'R$ 50,00' : 'R$ 200,00';
+        
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="modal-cancel" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:center;padding:1.5rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:1.5rem;">
+                    <h2 style="font-weight:900;text-transform:uppercase;color:#ef4444;margin-bottom:0.5rem;font-size:1.1rem">Cancelar Reserva?</h2>
+                    <p style="font-size:0.8rem;color:#64748b;font-weight:700;margin-bottom:1rem">Tem certeza que deseja cancelar sua reserva para o dia ${U.fmtDate(ag.data_reserva)} às ${ag.horario_reserva.substring(0,5)}?</p>
+                    <div style="background:#fff1f2; border:1px solid #fda4af; padding:1rem; border-radius:1rem; margin-bottom:1.5rem">
+                        <strong style="color:#e11d48; font-size:0.85rem; display:block; margin-bottom:0.25rem">Atenção!</strong>
+                        <p style="color:#be123c; font-size:0.75rem; line-height:1.4">Cancelamentos fora do prazo prejudicam a logística da equipe. Uma multa de <strong>${multa}</strong> poderá ser cobrada na sua próxima mensalidade em caso de infração da regra.</p>
+                    </div>
+                    <div style="display:flex;gap:0.5rem">
+                        <button onclick="document.getElementById('modal-cancel').remove()" class="flex-1 py-3 bg-slate-100 text-slate-600 font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 transition-all">Voltar</button>
+                        <button onclick="document.getElementById('modal-cancel').remove(); A.confirmCancel('${id}')" class="flex-1 py-3 bg-red-500 text-white font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 shadow-glow transition-all">Sim, Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        `);
+    },
+    async confirmCancel(id) {
+        const ag=State.agendamentos.find(x=>x.id===id); if(!ag) return;
+        const ok=await API.cancelBooking(id);
+        if(ok||State.assinante.id==='test-user-id'){ ag.status='cancelado'; U.toast('Reserva cancelada.'); A.render(); }
+        else U.toast('Erro ao cancelar.','error');
+    },
+    // 📸 Fotos 📸
+    openPhotoModal(bookingId) {
+        State.fotosPend={bookingId,slots:[null,null]};
+        A.renderPhotoModal();
+    },
+    renderPhotoModal() {
+        document.getElementById('modal-fotos')?.remove();
+        const {slots,bookingId}=State.fotosPend;
+        const filled=slots.filter(Boolean).length;
+        const labels=['Frente','Armazenado no rack'];
+        const slotsHtml=slots.map((s,i)=>`
+            <div class="foto-slot ${s?'filled':''}" id="fs-${i}">
+                <input type="file" accept="image/*" capture="environment" onchange="A.pickPhoto(${i},this)">
+                <div class="slot-inner">
+                    ${s?`<img src="${s}" alt="">`:`<span style="font-size:1.5rem">📷</span><span style="font-size:.62rem;font-weight:900;text-transform:uppercase;color:#94a3b8;margin-top:3px">${labels[i]}</span>`}
+                </div>
+            </div>`).join('');
+        document.body.insertAdjacentHTML('beforeend',`
+            <div id="modal-fotos" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:flex-end;padding:1rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:1.5rem;max-width:26rem;width:100%;margin:0 auto;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+                    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
+                        <span style="font-size:1.5rem">📷</span>
+                        <div><p style="font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#64748b;margin:0">Vistoria Pós-Remada</p><p style="font-weight:900;font-size:1rem;color:#0f172a;margin:0">Envio de Fotos</p></div>
+                    </div>
+                    <p style="font-size:.72rem;color:#64748b;font-weight:700;margin-bottom:1rem;line-height:1.5">Tire 2 fotos do caiaque: frente e armazenado no rack. Isso libera novas reservas.</p>
+                    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1rem;">${slotsHtml}</div>
+                    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:.8rem;padding:.55rem .8rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem">
+                        <span>${filled>=2?'✔️':'⏳'}</span>
+                        <span style="font-size:.72rem;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:.06em">${filled}/2 fotos selecionadas</span>
+                    </div>
+                    <button onclick="A.submitPhotos()" ${filled>=2?'':'disabled'}
+                            style="width:100%;padding:.9rem;background:${filled>=2?'linear-gradient(135deg,#1D70B8,#1e3a8a)':'#e2e8f0'};color:${filled>=2?'white':'#94a3b8'};border:none;border-radius:.9rem;font-weight:900;font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;cursor:${filled>=2?'pointer':'not-allowed'};margin-bottom:.5rem;transition:all .2s">
+                        ${filled>=2?'Enviar Fotos e Liberar Acesso':'Selecione as 2 Fotos'}
+                    </button>
+                    <button onclick="A.skipPhotos()" style="width:100%;padding:.8rem;background:#fff1f2;color:#e11d48;border-radius:.75rem;font-weight:900;text-transform:uppercase;font-size:.7rem;letter-spacing:.05em;border:1px solid #fda4af;margin-bottom:.5rem">Pular Vistoria (Assumo o Risco)</button>
+                    <button onclick="document.getElementById('modal-fotos').remove()" style="width:100%;padding:.6rem;background:transparent;color:#94a3b8;border:none;font-weight:800;font-size:.72rem;text-transform:uppercase;cursor:pointer">Cancelar</button>
+                </div>
+            </div>`);
+    },
+    async pickPhoto(i, inp) {
+        if(!inp.files?.[0]) return;
+        try { State.fotosPend.slots[i]=await U.readFile(inp.files[0]); A.renderPhotoModal(); }
+        catch(e){ U.toast('Erro ao carregar foto.','error'); }
+    },
+    submitPhotos() {
+        const {bookingId,slots}=State.fotosPend;
+        if(slots.filter(Boolean).length<2){ U.toast('Envie as 2 fotos.','warning'); return; }
+        const ag=State.agendamentos.find(a=>a.id===bookingId);
+        if(ag){
+            ag.fotos_enviadas=true;
+            DB.save();
+            API.sendTicket('agendamento_request', ag);
+        }
+        
+        if (slots[1]) {
+            const caiName = State.caiaques.find(c=>String(c.id)===String(ag?.caiaque_id))?.nome || 'Equipamento';
+            const todayDate = U.fmtDate(U.todayStr());
+            const fPayload = {
+                id: Date.now(),
+                data: todayDate,
+                autor: State.assinante.nome,
+                tipo: 'Segurança',
+                img: slots[1],
+                desc: 'Foto de devolução do ' + caiName
+            };
+            API.sendTicket('nova_foto', fPayload);
+        }
+
+        State.fotosPend = null;
+        Notif.save({title:'📸 Fotos Enviadas!',body:'Vistoria concluída. Você já pode fazer novas reservas.',type:'success'});
+        U.toast('Fotos enviadas! Reservas liberadas. ✔️');
+        document.getElementById('modal-fotos')?.remove();
+        A.render();
+    },
+    skipPhotos() {
+        if(!confirm('ATENÇÃO: Ao pular a vistoria fotográfica, você assume integralmente a responsabilidade financeira caso a equipe encontre avarias no caiaque antes do próximo embarque. Deseja assumir o risco?')) return;
+        const {bookingId}=State.fotosPend;
+        const ag=State.agendamentos.find(a=>a.id===bookingId);
+        if(ag){
+            ag.fotos_enviadas=true;
+            ag.vistoria_pulada=true;
+            DB.save();
+            API.sendTicket('agendamento_request', ag);
+        }
+        State.fotosPend = null;
+        Notif.save({title:'⚠️ Risco Assumido',body:'Vistoria pulada. Reservas liberadas.',type:'warning'});
+        U.toast('Vistoria pulada. Reservas liberadas.');
+        document.getElementById('modal-fotos')?.remove();
+        A.render();
+    },
+    // ⭐ Avaliação ⭐
+    async rateBooking(id, nota) {
+        const ag=State.agendamentos.find(x=>x.id===id); if(!ag) return;
+        ag.avaliado=true; ag.nota=nota; ag.comentario = '';
+        DB.save();
+        API.sendTicket('agendamento_request', ag);
+        U.toast('Avaliação enviada com sucesso! Obrigado.', 'success');
+        A.render();
+    },
+    // ── Calendário ──
+    prevMonth() { State.calMonth=new Date(State.calMonth.getFullYear(),State.calMonth.getMonth()-1,1); A.render(); },
+    nextMonth() { State.calMonth=new Date(State.calMonth.getFullYear(),State.calMonth.getMonth()+1,1); A.render(); },
+    // ── Perfil ──
+    async pickAvatar(inp) {
+        if(!inp.files?.[0]) return;
+        try {
+            const b=await U.readFile(inp.files[0]);
+            const div = document.createElement('div');
+            div.id = 'crop-modal';
+            div.className = 'fixed inset-0 bg-black/95 z-[9999] flex flex-col p-4 animate-fade-in';
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-6 pt-4">
+                    <button class="text-white bg-white/20 px-4 py-2 rounded-xl active:scale-95 transition-transform text-sm font-bold uppercase tracking-wider" onclick="this.closest('#crop-modal').remove()">Cancelar</button>
+                    <button id="crop-btn" class="text-white bg-remopink px-6 py-2 rounded-xl active:scale-95 transition-transform text-sm font-bold uppercase tracking-wider shadow-lg">Salvar</button>
+                </div>
+                <div class="flex-1 w-full relative flex items-center justify-center">
+                    <div id="croppie-container" class="w-full max-h-[70vh]"></div>
+                </div>
+            `;
+            document.body.appendChild(div);
+
+            const el = document.getElementById('croppie-container');
+            const croppie = new Croppie(el, {
+                viewport: { width: 200, height: 200, type: 'circle' },
+                boundary: { width: '100%', height: 400 },
+                showZoomer: true,
+                enableOrientation: true
+            });
+
+            croppie.bind({ url: b });
+
+            document.getElementById('crop-btn').onclick = () => {
+                const btn = document.getElementById('crop-btn');
+                btn.innerHTML = 'Salvando...';
+                btn.disabled = true;
+                croppie.result({ type: 'base64', size: 'viewport', format: 'png', circle: false }).then(cropped => {
+                    State.profileData.avatar = cropped;
+                    localStorage.setItem(PROFILE_KEY, JSON.stringify(State.profileData));
+                    A.render();
+                    U.toast('Foto de perfil atualizada!');
+                    div.remove();
+                });
+            };
+        } catch(e){ U.toast('Erro ao carregar imagem.','error'); }
+        inp.value = '';
+    },
+    // ── Notificações ──
+    clearNotifications() {
+        localStorage.setItem(NOTIF_KEY, '[]');
+        document.getElementById('modal-notif')?.remove();
+        U.toast('Notificações limpas! 🧹');
+        A.render();
+    },
+    openNotifPanel() {
+        document.getElementById('modal-notif')?.remove();
+        const list=Notif.load();
+        Notif.markAllRead();
+        const notifHtml=list.length===0?`<p style="text-align:center;color:#94a3b8;font-weight:700;font-size:.8rem;padding:2rem 0">Nenhuma notificação ainda.</p>`:
+            list.map(n=>`
+                <div style="display:flex;gap:.75rem;align-items:flex-start;padding:.85rem;border-radius:.9rem;background:${n.read?'#f8fafc':'#fdf4ff'};border:1.5px solid ${n.read?'#e2e8f0':'#f5d0fe'};margin-bottom:.5rem">
+                    <span style="font-size:1.2rem;flex-shrink:0">${n.type==='confirmado'?'✅':n.type==='cancelado'?'❌':n.type==='success'?'📸':'🛶'}</span>
+                    <div>
+                        <p style="font-weight:900;font-size:.78rem;color:#0f172a;margin:0 0 .2rem">${n.title}</p>
+                        <p style="font-size:.72rem;color:#64748b;font-weight:700;margin:0">${n.body}</p>
+                        <p style="font-size:.62rem;color:#94a3b8;font-weight:700;margin:.3rem 0 0">${new Date(n.time).toLocaleString('pt-BR')}</p>
+                    </div>
+                </div>`).join('');
+        document.body.insertAdjacentHTML('beforeend',`
+            <div id="modal-notif" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:flex-end;padding:1rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:1.5rem;max-width:26rem;width:100%;margin:0 auto;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:80vh;overflow-y:auto">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+                        <div><p style="font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#64748b;margin:0">Central de Avisos</p><p style="font-weight:900;font-size:1rem;color:#0f172a;margin:0">Notificações</p></div>
+                        <div style="display:flex;gap:.5rem;align-items:center">
+                            ${list.length>0?`<button onclick="A.clearNotifications()" style="font-size:.65rem;font-weight:900;text-transform:uppercase;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;padding:.25rem .7rem;border-radius:.5rem;cursor:pointer">🗑 Limpar</button>`:''}
+                            <button onclick="document.getElementById('modal-notif').remove()" style="width:2rem;height:2rem;border-radius:9999px;background:#f1f5f9;border:none;cursor:pointer;font-size:1rem">✕</button>
+                        </div>
+                    </div>
+                    ${notifHtml}
+                </div>
+            </div>`);
+        A.render();
+    },
+    enterClientMode() { State.adminMode=false; A.goTo('home'); },
+    enterAdminMode() { State.adminMode=true; A.goTo('adminHome'); },
+    deleteCliente(id) {
+        const c = State.assinantes.find(x => x.id === id);
+        if(!c) return;
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="modal-delete" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:center;padding:1.5rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:1.5rem;">
+                    <h2 style="font-weight:900;text-transform:uppercase;color:#ef4444;margin-bottom:0.5rem;font-size:1.1rem">Excluir Cliente?</h2>
+                    <p style="font-size:0.8rem;color:#64748b;font-weight:700;margin-bottom:1.5rem">Tem certeza que deseja excluir <strong>${c.nome}</strong>? Esta ação não pode ser desfeita e todas as reservas atreladas serão perdidas.</p>
+                    <div style="display:flex;gap:0.5rem">
+                        <button onclick="document.getElementById('modal-delete').remove()" class="flex-1 py-3 bg-slate-100 text-slate-600 font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 transition-all">Cancelar</button>
+                        <button onclick="document.getElementById('modal-delete').remove(); A.confirmDeleteCliente('${id}')" class="flex-1 py-3 bg-red-500 text-white font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 shadow-glow transition-all">Sim, Excluir</button>
+                    </div>
+                </div>
+            </div>
+        `);
+    },
+    async confirmDeleteCliente(id) {
+        const c = State.assinantes.find(x => x.id === id);
+        if(!c) return;
+        State.assinantes = State.assinantes.filter(x => x.id !== id);
+        API.save();
+        await API.sendTicket('client_deleted', { id });
+        U.toast(`Cadastro de ${c.nome} removido.`);
+        A.render();
+    },
+    renovarMensalidade(id) {
+        const c = State.assinantes.find(x => x.id === id);
+        if(!c) return;
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="modal-renovar" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:center;padding:1.5rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:1.5rem;">
+                    <h2 style="font-weight:900;text-transform:uppercase;color:#10b981;margin-bottom:0.5rem;font-size:1.1rem">Confirmar Renovação</h2>
+                    <p style="font-size:0.8rem;color:#64748b;font-weight:700;margin-bottom:1.5rem">O plano de <strong>${c.nome}</strong> será renovado por mais 1 mês. Confirma o pagamento?</p>
+                    <div style="display:flex;gap:0.5rem">
+                        <button onclick="document.getElementById('modal-renovar').remove()" class="flex-1 py-3 bg-slate-100 text-slate-600 font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 transition-all">Voltar</button>
+                        <button onclick="document.getElementById('modal-renovar').remove(); A.confirmRenovarMensalidade('${id}')" class="flex-1 py-3 bg-emerald-500 text-white font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 shadow-glow transition-all">Sim, Renovar</button>
+                    </div>
+                </div>
+            </div>
+        `);
+    },
+    confirmRenovarMensalidade(id) {
+        const c = State.assinantes.find(x => x.id === id);
+        if(!c) return;
+        const hj = new Date();
+        let dv = c.data_vencimento ? new Date(c.data_vencimento+'T12:00:00') : hj;
+        if (dv < hj) dv = new Date(hj.getFullYear(), hj.getMonth(), c.dia_vencimento, 12, 0, 0);
+        dv.setMonth(dv.getMonth() + 1);
+        
+        c.data_vencimento = dv.toISOString().split('T')[0];
+        API.save();
+        U.toast(`Pagamento de ${c.nome} confirmado! ✅`);
+        A.render();
+    },
+    setClientFilter(f) {
+        State.adminClientFilter = f;
+        A.render();
+    },
+    toggleDia(d) {
+        if(State.diasFechados.includes(d)) State.diasFechados = State.diasFechados.filter(x=>x!==d);
+        else State.diasFechados.push(d);
+        localStorage.setItem('plorix_dias_fechados', JSON.stringify(State.diasFechados));
+        A.render();
+    },
+    async cadastrarCliente() {
+        const els = ['c-nome', 'c-tel', 'c-pin', 'c-venc'].map(id => document.getElementById(id));
+        els.forEach(el => el && el.classList.remove('error-border'));
+
+        const nome = els[0]?.value.trim();
+        const tel = els[1]?.value.replace(/\D/g,'');
+        const pin = els[2]?.value.trim();
+        const venc = parseInt(els[3]?.value);
+        const tipo = document.getElementById('c-tipo')?.value;
+        const equip = document.getElementById('c-equip')?.value.trim();
+        
+        let hasError = false;
+        if(!nome) { els[0]?.classList.add('error-border'); hasError = true; }
+        if(!tel) { els[1]?.classList.add('error-border'); hasError = true; }
+        if(!pin || pin.length !== 6) { els[2]?.classList.add('error-border'); hasError = true; }
+        if(!venc || venc < 1 || venc > 31) { els[3]?.classList.add('error-border'); hasError = true; }
+        
+        if(hasError) { U.toast('Preencha os campos corretamente.', 'warning'); return; }
+        if(State.assinantes.find(x=>x.telefone===tel)) { els[1]?.classList.add('error-border'); U.toast('Telefone já cadastrado.','error'); return; }
+        
+        const btn = document.getElementById('btn-cadastrar');
+        if(btn) { btn.innerText = 'Salvando...'; btn.disabled = true; }
+
+        const dataVencStr = U.calcVencimento(venc);
+        const hashedPin = await U.hash(pin);
+
+        const novo = {
+            id: 'c-'+Date.now(),
+            nome, telefone:tel, senhaHash:hashedPin, tipo_plano:tipo, equipamento: (tipo==='guardaria'?equip:''), creditos: 8,
+            dia_vencimento:venc, data_vencimento:dataVencStr, ativo:true, primeiro_acesso:true, created_at:new Date().toISOString()
+        };
+        State.assinantes.push(novo);
+        API.save(); 
+        await API.sendTicket('client_created', novo);
+        U.toast('Cliente cadastrado com sucesso! ✅');
+        A.goTo('adminClientes');
+    },
+    payWithMercadoPago() {
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="modal-mp" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:center;padding:1.5rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:2rem;text-align:center;">
+                    <div style="font-size:3rem;margin-bottom:1rem">🚧</div>
+                    <h2 style="font-weight:900;text-transform:uppercase;color:#0f172a;margin-bottom:0.5rem">Integração em Breve</h2>
+                    <p style="font-size:0.8rem;color:#64748b;font-weight:700;margin-bottom:1.5rem">O pagamento automático via PIX/Cartão pelo Mercado Pago será liberado nas próximas atualizações. Por enquanto, utilize a chave PIX CNPJ e envie o comprovante.</p>
+                    <button onclick="document.getElementById('modal-mp').remove()" class="w-full py-3 bg-slate-100 text-slate-800 font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 transition-all">Entendi</button>
+                </div>
+            </div>
+        `);
+    },
+    openEditCliente(id) {
+        const c = State.assinantes.find(x => x.id === id);
+        if(!c) return;
+        document.body.insertAdjacentHTML('beforeend',`
+            <div id="modal-edit-client" style="position:fixed;inset:0;background:rgba(10,18,36,.82);backdrop-filter:blur(6px);z-index:9990;display:flex;flex-direction:column;justify-content:flex-end;padding:1rem;">
+                <div class="animate-slide-up" style="background:white;border-radius:1.5rem;padding:1.5rem;width:100%;max-height:85vh;overflow-y:auto">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:1rem">
+                        <h2 style="font-weight:900;text-transform:uppercase;color:#0f172a">Editar Cliente</h2>
+                        <button onclick="document.getElementById('modal-edit-client').remove()" style="background:#f1f5f9;border-radius:9999px;width:2rem;height:2rem;font-weight:bold">✕</button>
+                    </div>
+                    <div class="space-y-3">
+                        <input type="text" id="e-nome" value="${c.nome}" class="custom-input !py-2 !text-sm" placeholder="Nome">
+                        <input type="tel" id="e-tel" value="${U.fmtPhone(c.telefone)}" class="custom-input !py-2 !text-sm" placeholder="(13) 12345-6789" oninput="U.maskPhone(this)">
+                        <input type="text" id="e-pin" value="${c.senha}" class="custom-input !py-2 !text-sm" placeholder="PIN (6 dígitos)" maxlength="6">
+                        <select id="e-tipo" class="custom-input !py-2 !text-sm" onchange="document.getElementById('e-equip-wrap').style.display=this.value==='guardaria'?'block':'none'">
+                            <option value="mensalista" ${c.tipo_plano==='mensalista'?'selected':''}>Mensalista</option>
+                            <option value="guardaria" ${c.tipo_plano==='guardaria'?'selected':''}>Guardaria</option>
+                        </select>
+                        <div id="e-equip-wrap" style="display:${c.tipo_plano==='guardaria'?'block':'none'}">
+                            <select id="e-equip" class="custom-input !py-2 !text-sm mt-2">
+                                <option value="">-- Escolha o Equipamento --</option>
+                                ${State.caiaques.map(x=>`<option value="${x.id}" ${c.equipamento===x.id?'selected':''}>${x.nome}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-bold text-slate-400 ml-1 mb-0.5 uppercase tracking-widest">Dia de Vencimento</p>
+                            <select id="e-venc" class="custom-input !py-2 !text-sm text-center">
+                                <option value="">-- Selecione o Dia --</option>
+                                ${Array.from({length: 31}, (_, i) => `<option value="${i+1}" ${c.dia_vencimento==i+1?'selected':''}>${i+1}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div style="display:flex;gap:.5rem;margin-top:1rem">
+                            <button onclick="document.getElementById('modal-edit-client').remove()" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black uppercase text-xs">Cancelar</button>
+                            <button onclick="A.saveEditCliente('${c.id}')" class="flex-1 py-3 bg-remoblue text-white rounded-xl font-black uppercase text-xs">Salvar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`);
+    },
+    async saveEditCliente(id) {
+        const c = State.assinantes.find(x => x.id === id);
+        if(!c) return;
+        
+        const els = ['e-nome', 'e-tel', 'e-pin', 'e-venc'].map(id => document.getElementById(id));
+        els.forEach(el => el && el.classList.remove('error-border'));
+
+        const nome = els[0]?.value.trim();
+        const tel = els[1]?.value.replace(/\D/g,'');
+        const pin = els[2]?.value.trim();
+        const venc = parseInt(els[3]?.value);
+        const tipo=document.getElementById('e-tipo')?.value;
+        const equip=document.getElementById('e-equip')?.value.trim();
+        
+        let hasError = false;
+        if(!nome) { els[0]?.classList.add('error-border'); hasError = true; }
+        if(!tel) { els[1]?.classList.add('error-border'); hasError = true; }
+        if(!pin || pin.length !== 6) { els[2]?.classList.add('error-border'); hasError = true; }
+        if(!venc || venc < 1 || venc > 31) { els[3]?.classList.add('error-border'); hasError = true; }
+        
+        if(hasError) { U.toast('Preencha os campos corretamente.','warning'); return; }
+        
+        const btn = document.getElementById('btn-edit-cliente');
+        if(btn) { btn.innerText = 'Salvando...'; btn.disabled = true; }
+        
+        c.nome = nome; c.telefone = tel; c.senhaHash = pin; c.tipo_plano = tipo; /* TODO: hash pin */
+        c.equipamento = tipo==='guardaria'?equip:''; c.dia_vencimento = venc;
+        c.data_vencimento = U.calcVencimento(venc);
+        
+        if(State.assinante && State.assinante.id === c.id) {
+            Object.assign(State.assinante, c);
+            localStorage.setItem(SESSION_KEY, JSON.stringify(State.assinante));
+        }
+        
+        API.save(); 
+        document.getElementById('modal-edit-client')?.remove();
+        U.toast('Cliente atualizado! ✅');
+        A.render();
+    },
+    render() {
+        const root=document.getElementById('root'); if(!root) return;
+        try {
+            if(State.currentPage==='login') root.innerHTML=V.Login();
+            else {
+                const pages={ home:V.Home, agendar:V.Booking, calendario:V.Calendario, historico:V.Historico, perfil:V.Perfil, pagamento:V.Pagamento, forcePasswordChange:V.ForcePasswordChange };
+                root.innerHTML=(pages[State.currentPage]||V.Home)()+(State.currentPage==='forcePasswordChange'?'':V.AvisoBanner())+(State.currentPage==='forcePasswordChange'?'':V.BottomNav())+(State.currentPage==='forcePasswordChange'?'':V.WaBtn());
+            }
+        } catch(e){
+            console.error(e);
+            root.innerHTML=`<div style="padding:2rem;text-align:center"><p style="color:red;font-weight:900">Erro: ${e.message}</p></div>`;
+        }
+    }
+};
+
+// ═══════════════════════════════════════════════
+// VIEWS (Components)
+// ═══════════════════════════════════════════════
+const V = {
+    Historico: ()=>{
+        if(!State.assinante) return '';
+        const trips = State.agendamentos.filter(a=>a.assinante_id === State.assinante.id).sort((a,b)=>new Date(b.data_reserva) - new Date(a.data_reserva));
+        
+        let content = '';
+        if(trips.length === 0) {
+            content = `<div class="text-center py-8 opacity-50"><span class="text-3xl block mb-2">🛶</span><p class="font-bold text-xs">Nenhuma viagem agendada ainda.</p></div>`;
+        } else {
+            content = trips.map(t => {
+                const isPast = new Date(t.data_reserva + 'T23:59:59') < new Date();
+                let statusColor = 'text-slate-500';
+                let statusLabel = t.status.toUpperCase();
+                
+                if(t.status==='pendente') statusColor='text-amber-500';
+                else if(t.status==='confirmado') statusColor='text-emerald-500';
+                else if(t.status==='recusado'||t.status==='cancelado') statusColor='text-red-500';
+                
+                return `
+                <div class="glass-card p-4 mb-3 border-l-4 ${t.status==='confirmado'?'border-l-emerald-500':(t.status==='pendente'?'border-l-amber-500':'border-l-slate-300')}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-black text-slate-800">${(t.data_reserva || '').split('-').reverse().join('/')}</p>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">${t.horario_reserva.substring(0,5)}</p>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-slate-100 ${statusColor}">${statusLabel}</span>
+                    </div>
+                    ${t.status==='concluido'?`
+                        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-slate-500">${t.avaliado ? 'Sua avaliação:' : 'Avaliar viagem:'}</span>
+                            <div class="flex gap-1">
+                                ${[1,2,3,4,5].map(s=>{
+                                    if(t.avaliado) {
+                                        return `<span class="text-lg ${s<=t.nota?'':'grayscale opacity-30'}" style="color:${s<=t.nota?'#f59e0b':''}"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${s<=t.nota?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>`;
+                                    } else {
+                                        return `<button onclick="A.rateBooking('${t.id}',${s})" class="text-lg text-slate-300 hover:text-amber-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>`;
+                                    }
+                                }).join('')}
+                            </div>
+                        </div>
+                    `:''}
+                </div>
+                `;
+            }).join('');
+        }
+        
+        return `<div class="space-y-4 animate-fade-up pb-8">
+            <h2 class="text-xl font-black uppercase text-slate-800 ml-1">Histórico</h2>
+            ${content}
+        </div>`;
+    },
+
+    Logo: ()=>`
+        <div class="flex flex-col items-center text-center select-none">
+            <div class="w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-remopink overflow-hidden hover:scale-105 transition-transform">
+                <img src="./logo.png" alt="Remoterapia" class="w-full h-full object-contain p-2 drop-shadow-lg" onerror="this.style.display='none'">
+            </div>
+            <h1 class="text-2xl font-black italic uppercase tracking-tight text-remoblue-dark mt-3">Remoterapia</h1>
+            <p class="text-[9px] font-black text-remopink uppercase tracking-[0.22em] mt-1.5 bg-white/70 px-4 py-1 rounded-full border border-white shadow-sm">Agendamento · Mensalistas</p>
+        </div>`,
+
+    AvisoBanner: () => {
+        if (!State.cloudPayload || !State.cloudPayload.avisoGlobal || !State.cloudPayload.avisoGlobal.ativo) return '';
+        const a = State.cloudPayload.avisoGlobal;
+        return `
+        <div class="fixed top-4 left-4 right-4 z-[90] p-4 bg-orange-100/95 backdrop-blur-md rounded-2xl flex flex-col gap-2 border-l-4 border-orange-500 shadow-lg animate-fade-in">
+            <div class="flex items-start gap-2">
+                <span class="text-2xl shrink-0 mt-0.5">📢</span>
+                <div>
+                    <p class="text-[9px] font-black text-orange-600 uppercase tracking-widest mb-1">Aviso da Administração</p>
+                    <p class="text-sm font-bold text-slate-800 leading-snug">${U.sanitize(a.texto)}</p>
+                    ${a.data ? `<p class="text-[8px] font-bold text-orange-500/80 mt-1 uppercase">Postado em: ${a.data}</p>` : ''}
+                </div>
+            </div>
+            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-orange-400 p-1 bg-white/50 rounded-lg active:scale-95">✕</button>
+        </div>`;
+    },
+
+    WaBtn: ()=>`
+        <a href="${U.waLink('Olá! Preciso de ajuda com meu agendamento na Remoterapia.')}" target="_blank" class="wa-btn">
+            <svg class="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 001.333 4.993L2 22l5.233-1.371a9.936 9.936 0 004.777 1.22c5.508 0 9.99-4.479 9.99-9.986 0-2.67-1.037-5.18-2.92-7.062A9.925 9.925 0 0012.012 2zm5.795 14.193c-.319.894-1.597 1.637-2.203 1.763-.58.12-1.332.22-3.856-.823-3.23-1.334-5.307-4.622-5.468-4.838-.162-.215-1.309-1.74-1.309-3.322 0-1.583.829-2.361 1.124-2.679.295-.319.648-.399.864-.399.215 0 .43.002.617.01.196.008.46-.072.72.553.27.648.919 2.243.999 2.403.08.16.13.346.023.559-.106.213-.16.346-.319.53-.16.187-.336.319-.48.494-.162.18-.332.378-.142.705.19.32.846 1.4 1.817 2.263.97.863 1.787 1.129 2.11 1.29.32.162.51.135.702-.08.192-.216.824-.959.957-1.29.13-.331.27-.27.46-.199.192.072 1.218.574 1.428.679.21.106.346.16.399.25.053.09.053.53-.266 1.425z"/></svg>
+        </a>`,
+
+    BottomNav: ()=>{
+        const p=State.currentPage;
+        const unread=Notif.unreadCount();
+        const pending=A.pendingRatings().length;
+        const tabs = [
+            {id:'home',      icon:'🏠', label:'Início'},
+            {id:'calendario',icon:'📅', label:'Agendar'},
+            {id:'historico', icon:'🧾', label:'Histórico'},
+            {id:'perfil',    icon:'👤', label:'Perfil'}
+        ];
+        return `
+            <nav class="bottom-nav">
+                <div class="flex items-stretch">
+                    ${tabs.map(t=>`
+                        <button onclick="A.goTo('${t.id}')" class="nav-btn ${p===t.id?'active':''}">
+                            <span class="nav-icon" style="position:relative">
+                                ${t.icon}
+                                ${t.id==='perfil'&&(unread||pending)?`<span style="position:absolute;top:-4px;right:-4px;width:9px;height:9px;background:#E52E87;border-radius:9999px;border:1.5px solid white"></span>`:''}
+                            </span>
+                            <span class="nav-label" style="color:${p===t.id?'#E52E87':'#94a3b8'}">${t.label}</span>
+                        </button>`).join('')}
+                </div>
+            </nav>`;
+    },
+
+    Login: ()=>`
+        <div class="flex-1 flex flex-col justify-center items-center py-8 animate-fade-up">
+            ${V.Logo()}
+            <div class="w-full glass-card p-6 space-y-4 mt-8">
+                <div>
+                    <label class="text-[9px] font-black text-remoblue uppercase ml-1 mb-1.5 block tracking-widest">Telefone (WhatsApp)</label>
+                    <input type="tel" id="l-tel" placeholder="(13) 12345-6789" class="custom-input" inputmode="tel"
+                           onkeydown="if(event.key==='Enter')document.getElementById('l-pin').focus()">
+                </div>
+                <div>
+                    <label class="text-[9px] font-black text-remoblue uppercase ml-1 mb-1.5 block tracking-widest">Senha (PIN de 6 dígitos)</label>
+                    <input type="password" id="l-pin" maxlength="6" placeholder="••••••" inputmode="numeric"
+                           class="custom-input pin-input" onkeydown="if(event.key==='Enter')A.login()">
+                </div>
+                <button id="btn-login" onclick="A.login()"
+                        class="w-full py-4 bg-gradient-to-r from-remopink to-remopink-dark text-white font-black rounded-2xl shadow-glow active:scale-95 transition-all uppercase tracking-widest text-sm border-2 border-white/20">
+                    Entrar
+                </button>
+                <p class="text-center text-[9px] font-bold text-slate-400">
+                    Problemas? <a href="${U.waLink('Olá, preciso de ajuda para acessar o portal da Remoterapia.')}" target="_blank" class="text-remopink underline">Fale conosco</a>
+                </p>
+            </div>
+            <p class="text-[8px] font-bold text-slate-400 mt-4 uppercase tracking-widest">Acesso exclusivo para mensalistas</p>
+        </div>`,
+
+    Home: ()=>{
+        const count=A.weekCount(), rem=Math.max(0,2-count);
+        const pendPh=A.pendingPhotos(), pendRt=A.pendingRatings(), unread=Notif.unreadCount();
+        const userAgs=State.agendamentos
+            .filter(a=>a.assinante_id===State.assinante.id)
+            .sort((a,b)=>{
+                const now=new Date();
+                const af=new Date(a.data_reserva+'T'+a.horario_reserva)>now;
+                const bf=new Date(b.data_reserva+'T'+b.horario_reserva)>now;
+                if(af&&!bf)return -1; if(!af&&bf)return 1;
+                return new Date(b.created_at)-new Date(a.created_at);
+            });
+        const bgs={pendente:'border-l-amber-400',confirmado:'border-l-emerald-400',cancelado:'border-l-slate-200',concluido:'border-l-slate-200'};
+        const bdg={
+            pendente:'bg-amber-100 text-amber-700 border-amber-300',
+            confirmado:'bg-emerald-100 text-emerald-700 border-emerald-300',
+            cancelado:'bg-red-100 text-red-700 border-red-300',
+            concluido:'bg-slate-100 text-slate-600 border-slate-300'
+        };
+        const list=userAgs.map(a=>{
+            const cai=State.caiaques.find(x=>x.id===a.caiaque_id);
+            const diff=(new Date(`${a.data_reserva}T${a.horario_reserva}`)-new Date())/3600000;
+            let act='';
+            if(a.status==='pendente'||a.status==='confirmado')
+                act=`<button onclick="A.cancelReservation('${a.id}')" class="text-[9px] font-black text-white bg-red-500 border border-red-400 shadow-sm px-3 py-1.5 rounded-lg active:scale-95">Cancelar</button>`;
+            else if(a.status==='concluido'&&!a.fotos_enviadas)
+                act=`<button onclick="A.openPhotoModal('${a.id}')" class="text-[9px] font-black text-white bg-remopink px-3 py-1.5 rounded-lg active:scale-95 animate-pulse-red">📸 Fotos</button>`;
+            
+            const bl=a.status==='concluido'&&!a.fotos_enviadas?'border-l-red-400':bgs[a.status]||'border-l-slate-200';
+            return `
+                <div class="glass-card flex justify-between items-center border-l-4 ${bl}">
+                    <div class="min-w-0 flex-1 pr-2">
+                        <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                            <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${bdg[a.status]||bdg.concluido}">${{pendente:'Pendente',confirmado:'Confirmado',cancelado:'Cancelado',concluido:'Concluído'}[a.status]}</span>
+                            ${a.status==='concluido'&&!a.fotos_enviadas?'<span class="text-[8px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-md border border-red-200">📸 Pendente</span>':''}
+                        </div>
+                        <p class="text-sm font-black text-slate-800 truncate">${cai?cai.nome:'Embarcação'}</p>
+                        <div class="flex items-center gap-2 mt-0.5 text-[9px] text-slate-500 font-bold">
+                            <span>📅 ${U.fmtDate(a.data_reserva)}</span><span>🕐 ${a.horario_reserva.substring(0,5)}</span>
+                        </div>
+                    </div>
+                    <div class="shrink-0">${act}</div>
+                </div>`;
+        }).join('');
+
+        return `
+            <div class="space-y-4 flex-1 flex flex-col animate-fade-up">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-remoblue to-remoblue-dark p-4 rounded-3xl border-2 border-white/50 shadow-float text-white flex justify-between items-center">
+                    <div class="min-w-0">
+                        <p class="text-[8px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Área do Mensalista</p>
+                        <p class="text-[10px] text-blue-200 font-semibold mb-0.5">Bem-vinda(o),</p>
+                        <h2 class="text-base font-black uppercase truncate">${U.sanitize(State.assinante.nome)}</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${unread>0?`<button onclick="A.openNotifPanel()" class="relative px-3 py-2 bg-white/20 rounded-xl text-[9px] font-black border border-white/30 active:scale-95 transition-all">
+                            🔔 <span class="absolute -top-1 -right-1 w-4 h-4 bg-remopink text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white">${unread}</span>
+                        </button>`:`<button onclick="A.openNotifPanel()" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[9px] font-black border border-white/25 active:scale-95 transition-all">🔔</button>`}
+                        <button onclick="A.logout()" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[9px] font-black border border-white/25 active:scale-95 transition-all">Sair</button>
+                    </div>
+                </div>
+
+                <!-- Card Reservas -->
+                <div class="glass-card flex items-center justify-between border-l-4 border-l-remopink py-3">
+                    <div><p class="text-xs font-black text-slate-800 uppercase tracking-widest">Reservas Semanais</p><p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">máximo 2 por semana</p></div>
+                    <div class="text-center bg-white border border-slate-100 rounded-2xl px-4 py-2 shadow-inner">
+                        <span class="text-2xl font-black text-remopink block">${rem}</span>
+                        <span class="text-[8px] font-black text-slate-400 uppercase">Disponíveis</span>
+                    </div>
+                </div>
+
+                <!-- Alertas -->
+                ${pendPh.length>0?`
+                <div class="bg-red-50 border-2 border-red-200 p-4 rounded-2xl animate-pulse-red">
+                    <p class="text-xs font-black text-red-600 uppercase tracking-widest mb-1">⚠️ Vistoria Pendente</p>
+                    <p class="text-[9px] text-red-700 font-bold mb-3 uppercase leading-relaxed">${pendPh.length} devolução(ões) aguardando fotos. Novas reservas bloqueadas.</p>
+                    <button onclick="A.openPhotoModal('${pendPh[0].id}')" class="w-full py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 border border-red-400">📸 Enviar Fotos Agora</button>
+                </div>`:''}
+
+
+
+                <!-- Botão Agendar / Bloqueio -->
+                ${State.assinante?.bloqueado 
+                    ? `<div class="bg-red-50 border border-red-200 p-5 rounded-3xl text-center shadow-sm">
+                            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">⚠️</div>
+                            <h3 class="text-sm font-black text-red-700 uppercase mb-2">Conta Suspensa</h3>
+                            <p class="text-[10px] font-bold text-red-600/80 uppercase tracking-widest leading-relaxed mb-4">Seu acesso para realizar novas reservas está temporariamente bloqueado. Por favor, entre em contato.</p>
+                            <a href="${U.waLink('Olá, gostaria de verificar o bloqueio da minha conta.')}" target="_blank" class="w-full py-3 bg-red-600 text-white font-black rounded-xl uppercase tracking-widest text-[10px] inline-flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md">Falar com Suporte</a>
+                       </div>`
+                    : (pendPh.length>0
+                        ?`<div class="bg-slate-100 border border-slate-200 p-4 rounded-2xl text-center opacity-60"><p class="text-xs font-black text-slate-500 uppercase">🚫 Reservas Bloqueadas</p><p class="text-[9px] text-slate-400 font-bold mt-1 uppercase">Resolva a vistoria para agendar</p></div>`
+                        :rem>0
+                        ?`<button onclick="A.goTo('calendario')" class="w-full py-4 bg-gradient-to-r from-remopink to-remopink-dark text-white font-black rounded-2xl shadow-glow active:scale-95 transition-all uppercase tracking-widest text-xs border border-white/20 flex items-center justify-center gap-2">🛶 Solicitar Novo Agendamento</button>`
+                        :`<div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-center"><p class="text-xs font-black text-amber-700 uppercase">Limite Semanal Atingido 🚫</p></div>`)
+                }
+
+                <!-- Lista -->
+                <div class="space-y-2.5">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center bg-white/70 border border-white/90 rounded-full py-1.5 px-4 mx-auto w-fit shadow-sm">Seus Agendamentos (${userAgs.length})</p>
+                    ${list||`<div class="text-center py-10 bg-white/40 rounded-3xl border-2 border-dashed border-slate-200"><span class="text-3xl block mb-2 opacity-30">🌊</span><p class="text-[10px] font-black text-slate-400 uppercase">Nenhuma reserva ainda.</p></div>`}
+                </div>
+            </div>`;
+    },
+
+    Booking: ()=>{
+        const dates=[];
+        const now=new Date();
+        for(let i=1;i<=21;i++){
+            const d=new Date(); d.setDate(now.getDate()+i);
+            if(d.getDay()!==1) dates.push(d.toISOString().split('T')[0]);
+            if(dates.length>=12) break;
+        }
+        const isGuardaria = State.assinante?.tipo_plano === 'guardaria';
+        const times=isGuardaria ? ['06:00 às 10:00'] : ['06:00','08:00'];
+        const sd=State.bookingForm.data, st=State.bookingForm.horario;
+        let sk=State.bookingForm.caiaqueId;
+        
+        if(isGuardaria) {
+            const meuCaiaque = State.caiaques.find(c => c.dono === State.assinante.nome);
+            if(meuCaiaque) {
+                sk = meuCaiaque.id;
+                State.bookingForm.caiaqueId = sk;
+            }
+        }
+
+        const hojeStr = U.todayStr();
+        const horaAtual = now.getHours();
+        const podeAgendarAmanha = horaAtual < 19;
+
+        const dateOpts=dates.map(d=>{
+            const isAmanha = new Date(d+'T12:00:00') - new Date(hojeStr+'T12:00:00') === 86400000;
+            const bloqueado = isAmanha && !podeAgendarAmanha;
+            const active=sd===d, lbl=U.fmtDate(d), parts=lbl.split(',');
+            if(bloqueado) {
+                return `<button type="button" disabled class="px-3 py-2.5 rounded-2xl border text-xs font-black uppercase text-center shrink-0 min-w-[64px] bg-slate-50 text-slate-400 border-slate-200 opacity-50"><span class="text-[10px]">🔒</span><br><span class="text-[8px] font-semibold">Passou 19h</span></button>`;
+            }
+            return `<button onclick="A.selDate('${d}')" type="button"
+                class="px-3 py-2.5 rounded-2xl border text-xs font-black uppercase text-center shrink-0 min-w-[64px] transition-all
+                       ${active?'bg-remopink text-white border-remopink shadow-glow scale-105':'bg-white/90 text-slate-600 border-slate-200'}">
+                ${parts[0]}<br><span class="text-[9px] font-semibold lowercase opacity-80">${parts[1]||''}</span>
+            </button>`;
+        }).join('');
+
+        const timeOpts=sd?times.map(t=>`
+            <button onclick="A.selTime('${t}')" type="button"
+                class="py-5 rounded-2xl border-2 text-base font-black text-center transition-all shadow-sm flex flex-col items-center justify-center gap-1
+                       ${st===t?'bg-gradient-to-r from-remoblue to-remoblue-dark text-white border-remoblue/50 shadow-float scale-[1.02]':'bg-white/80 text-slate-600 border-slate-200 hover:bg-white hover:border-remoblue/30'}">
+                <span class="text-2xl drop-shadow-sm">${t==='06:00'?'🌅':t==='07:00'?'🌤️':t==='08:00'?'☀️':t==='09:00'?'😎':'🚣'}</span>
+                ${t}
+            </button>`).join(''):'';
+
+        let kayakHtml='';
+        if(sd&&st){
+            if(isGuardaria && State.assinante?.equipamento) {
+                const c = State.caiaques.find(x=>x.id===State.assinante.equipamento);
+                if(c) {
+                    kayakHtml=`<div class="glass-card flex justify-between items-center border-l-4 border-l-remopink bg-remopink/5">
+                        <div><p class="text-sm font-black text-slate-800">${c.nome}</p><p class="text-[9px] font-black text-remopink uppercase tracking-widest mt-0.5">Seu Equipamento Vinculado</p></div>
+                        <span class="text-2xl">✅</span>
+                    </div>`;
+                } else {
+                    kayakHtml=`<p class="text-center py-6 text-xs text-red-500 font-bold">Equipamento vinculado não encontrado na base.</p>`;
+                }
+            } else {
+                const avail=State.caiaques.filter(c=>c.status!=='inoperante');
+                kayakHtml=avail.length===0?`<p class="text-center py-6 text-xs text-slate-400 font-bold">Nenhum caiaque disponível.</p>`:
+                    avail.map(c=>{
+                        const ok=A.kayakAvail(c.id,sd,st), act=sk===c.id;
+                        if(!ok) return `<div class="glass-card flex justify-between items-center border-l-4 border-l-red-300 opacity-50"><div><p class="text-sm font-black text-slate-400">${c.nome}</p><p class="text-[9px] font-bold text-red-400 uppercase mt-0.5">Indisponível neste horário 🔒</p></div></div>`;
+                        return `<div onclick="A.selKayak('${c.id}')" class="glass-card flex justify-between items-center border-l-4 ${act?'border-l-remopink bg-remopink/5 scale-[1.01]':'border-l-remogreen hover:bg-white/90'} transition-all cursor-pointer">
+                            <div><p class="text-sm font-black text-slate-800">${c.nome}</p><p class="text-[9px] font-black text-remogreen uppercase tracking-widest mt-0.5">✓ Disponível na Base</p></div>
+                            <span class="text-2xl">${act?'✅':'🛶'}</span>
+                        </div>`;
+                    }).join('');
+            }
+        }
+
+        return `
+            <div class="space-y-5 flex-1 flex flex-col animate-fade-up">
+                <div class="bg-gradient-to-r from-remoblue to-remoblue-dark p-4 rounded-3xl border-2 border-white/50 shadow-float text-white flex justify-between items-center">
+                    <h3 class="text-base font-black uppercase italic">🛶 Agendar Navegação</h3>
+                    <button onclick="A.goTo('home')" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[9px] font-black uppercase border border-white/25 active:scale-95 transition-all">Voltar</button>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><span class="w-4 h-4 bg-remopink text-white rounded-full flex items-center justify-center text-[8px]">1</span>Selecionar Data</p>
+                    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">${dateOpts}</div>
+                </div>
+                ${sd?`<div class="space-y-2 animate-fade-up">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><span class="w-4 h-4 bg-remoblue text-white rounded-full flex items-center justify-center text-[8px]">2</span>Horário de Saída</p>
+                    <div class="grid grid-cols-2 gap-3">${timeOpts}</div>
+                </div>`:''}
+                ${sd&&st?`<div class="space-y-2 animate-fade-up">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><span class="w-4 h-4 bg-remogreen text-white rounded-full flex items-center justify-center text-[8px]">3</span>Escolher Embarcação</p>
+                    <div class="space-y-2">${kayakHtml}</div>
+                </div>`:''}
+                ${sd&&st&&sk?`
+                <div class="space-y-3 pt-4 border-t-2 border-white/60 mt-auto animate-fade-up">
+                    <label class="flex items-start gap-3 bg-white/80 p-4 rounded-2xl border-2 border-white/90 cursor-pointer hover:bg-white transition-all shadow-sm">
+                        <input type="checkbox" id="termos-uso" class="mt-0.5 w-5 h-5 accent-remopink shrink-0"
+                               onchange="const b=document.getElementById('btn-sub');b.disabled=!this.checked;b.style.opacity=this.checked?'1':'0.5'">
+                        <span class="text-[10px] font-bold text-slate-700 leading-relaxed">
+                            <strong class="block text-[11px] text-slate-900 mb-1 uppercase tracking-widest">Termos e Proteção LGPD</strong>
+                            Em conformidade com a LGPD (Lei nº 13.709/2018), seus dados estão protegidos.<br><br>
+                            Estou ciente que ausência sem comparecimento ou cancelamento fora do prazo gera multa logística de <strong>${isGuardaria ? 'R$ 50,00' : 'R$ 200,00'}</strong>.<br><br>
+                            Comprometo-me a enviar as fotos de vistoria do caiaque no fim da remada. Avarias não reportadas podem resultar em notificação legal ou bloqueio temporário do serviço.
+                        </span>
+                    </label>
+                    <button id="btn-sub" onclick="A.submitBooking()" disabled style="opacity:0.5"
+                            class="w-full py-4 bg-gradient-to-r from-remopink to-remopink-dark text-white font-black rounded-2xl shadow-glow active:scale-95 transition-all uppercase tracking-widest text-sm border border-white/20 flex items-center justify-center gap-2">
+                        <span>Confirmar Agendamento</span> <span class="text-xl">✅</span>
+                    </button>
+                </div>`:`
+                <div class="mt-auto pt-6 pb-2 animate-fade-up">
+                    <div class="bg-white/40 p-6 rounded-3xl border border-white/70 text-center shadow-sm backdrop-blur-sm relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-7xl opacity-10">🛶</div>
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] relative z-10">Conclua as etapas acima</p>
+                        <p class="text-[9px] text-slate-400 font-bold mt-1 uppercase relative z-10">Para liberar a confirmação</p>
+                    </div>
+                </div>`}
+            </div>`;
+    },
+
+    Calendario: ()=>{
+        const m=State.calMonth, y=m.getFullYear(), mo=m.getMonth();
+        const daysInM=U.daysInMonth(y,mo);
+        const firstDow=new Date(y,mo,1).getDay(); // 0=Dom
+        const todayStr=U.todayStr();
+        const weekdays=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+        const myBkgs=State.agendamentos.filter(a=>a.assinante_id===State.assinante.id&&a.status!=='cancelado');
+        const nowTime = new Date();
+        const minDate = new Date();
+        if (nowTime.getHours() >= 19) {
+            minDate.setDate(minDate.getDate() + 2);
+        } else {
+            minDate.setDate(minDate.getDate() + 1);
+        }
+        const minDateStr = minDate.getFullYear() + '-' + String(minDate.getMonth()+1).padStart(2,'0') + '-' + String(minDate.getDate()).padStart(2,'0');
+
+
+        const cells=[];
+        const maxDate = new Date();
+        maxDate.setHours(0,0,0,0);
+        const daysUntilSunday = (7 - maxDate.getDay()) % 7;
+        maxDate.setDate(maxDate.getDate() + daysUntilSunday);
+        if (new Date().getDay() === 0) maxDate.setDate(maxDate.getDate() + 7);
+        const maxDateStr = maxDate.getFullYear() + '-' + String(maxDate.getMonth()+1).padStart(2,'0') + '-' + String(maxDate.getDate()).padStart(2,'0');
+
+        for(let i=0;i<firstDow;i++) cells.push(`<div></div>`);
+        for(let d=1;d<=daysInM;d++){
+            const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dow=new Date(ds+'T12:00:00').getDay();
+            const isPast=ds<minDateStr;
+            const isFutureBlocked = ds > maxDateStr;
+            const isClosed=dow===1 || State.diasFechados.includes(ds) || isFutureBlocked;
+            const isToday=ds===todayStr;
+            const hasBooking=myBkgs.some(a=>a.data_reserva===ds);
+            const isAvail=!isPast&&!isClosed;
+
+            let cls='cal-day';
+            let dot='';
+            if(isPast) cls+=' past';
+            else if(isClosed) cls+=' closed';
+            else if(hasBooking){ cls+=' booked'; dot=`<span class="dot" style="background:#E52E87"></span>`; }
+            else cls+=' available';
+            if(isToday) cls+=' today';
+
+            var cellClick = (isAvail && !hasBooking) ? ('onclick="A.selDate(\'' + ds + '\');A.goTo(\'agendar\')"') : '';
+            var todayBadge = isToday ? '<span style="position:absolute;top:2px;right:3px;font-size:.42rem;font-weight:900;color:#E52E87">HOJE</span>' : '';
+            cells.push('<div class="' + cls + '" ' + cellClick + '>' + d + dot + todayBadge + '</div>');
+        }
+
+        const legend=[
+            {color:'rgba(118,192,67,.3)',border:'rgba(118,192,67,.5)',label:'Disponível'},
+            {color:'rgba(229,46,135,.15)',border:'rgba(229,46,135,.35)',label:'Reservado'},
+            {color:'rgba(148,163,184,.12)',border:'rgba(148,163,184,.2)',label:'Fechado'}
+        ];
+
+        return `
+            <div class="space-y-4 animate-fade-up">
+                <div class="bg-gradient-to-r from-remoblue to-remoblue-dark p-4 rounded-3xl border-2 border-white/50 shadow-float text-white">
+                    <p class="text-[8px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Disponibilidade</p>
+                    <h2 class="text-lg font-black uppercase">Calendário</h2>
+                </div>
+
+                <!-- Navegação mês -->
+                <div class="glass-card flex items-center justify-between py-3">
+                    <button onclick="A.prevMonth()" class="w-9 h-9 flex items-center justify-center text-remoblue bg-blue-50 rounded-xl active:scale-90 transition-all text-lg font-black">◀</button>
+                    <p class="text-sm font-black text-slate-800 uppercase tracking-widest">${U.monthName(m)}</p>
+                    <button onclick="A.nextMonth()" class="w-9 h-9 flex items-center justify-center text-remoblue bg-blue-50 rounded-xl active:scale-90 transition-all text-lg font-black">▶</button>
+                </div>
+
+                <!-- Grade dias da semana -->
+                <div class="glass-card p-3">
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        ${weekdays.map(w=>`<div style="font-size:.6rem;font-weight:900;text-transform:uppercase;color:${w==='Dom'||w==='Sáb'?'#E52E87':'#64748b'};text-align:center">${w}</div>`).join('')}
+                    </div>
+                    <div class="grid grid-cols-7 gap-1">${cells.join('')}</div>
+                </div>
+
+                <!-- Legenda -->
+                <div class="glass-card py-3">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2.5 text-center">Legenda</p>
+                    <div class="flex justify-center flex-wrap gap-3">
+                        ${legend.map(l=>`
+                            <div class="flex items-center gap-1.5">
+                                <span style="width:14px;height:14px;border-radius:5px;background:${l.color};border:1.5px solid ${l.border};display:inline-block;flex-shrink:0"></span>
+                                <span style="font-size:.68rem;font-weight:800;color:#64748b;text-transform:uppercase">${l.label}</span>
+                            </div>`).join('')}
+                        <div class="flex items-center gap-1.5">
+                            <span style="width:14px;height:14px;border-radius:5px;border:2.5px solid #E52E87;display:inline-block;flex-shrink:0"></span>
+                            <span style="font-size:.68rem;font-weight:800;color:#64748b;text-transform:uppercase">Hoje</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Toque num dia disponível para agendar</p>
+            </div>`;
+    },
+
+    Perfil: ()=>{
+        const {avatar}=State.profileData;
+        const plano = State.assinante.tipo_plano || State.profileData.plano || 'mensalista';
+        const unread=Notif.unreadCount();
+        const mine=State.agendamentos.filter(a=>a.assinante_id===State.assinante.id);
+        const concluidas=mine.filter(a=>a.status==='concluido').length;
+        const evals=mine.filter(a=>a.avaliado && typeof a.nota==='number');
+        const avgStars=evals.length?(evals.reduce((s,a)=>s+a.nota,0)/evals.length).toFixed(1):'—';
+        const dvStr = State.assinante.data_vencimento || '';
+        const validDateStr = (dvStr && dvStr.includes('-')) ? dvStr : null;
+        const vencDate = validDateStr ? new Date(validDateStr+'T12:00:00') : new Date();
+        const diasRest = validDateStr ? Math.ceil((vencDate-new Date())/86400000) : NaN;
+        const vencStr = validDateStr ? U.fmtDateLong(validDateStr) : 'Não Informada';
+        const initials=State.assinante.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+        const diasVal      = isNaN(diasRest) ? '—' : (diasRest < 0 ? String(Math.abs(diasRest))+'d' : String(diasRest));
+        const diasLabel    = diasRest < 0 ? 'dias vencido' : 'dias restantes';
+        const planoBorder  = diasRest < 0  ? 'border-t-red-400'     : (diasRest < 10 ? 'border-t-amber-400' : 'border-t-remopink');
+        const vencBorder   = diasRest < 0  ? 'border-red-200'        : (diasRest < 10 ? 'border-amber-200'  : 'border-remopink/20');
+        const diasColor    = diasRest < 0  ? 'text-red-500'          : (diasRest < 10 ? 'text-amber-500'   : 'text-remopink');
+        const diasLblColor = diasRest < 0  ? 'text-red-400'          : (diasRest < 10 ? 'text-amber-400'   : 'text-slate-400');
+        const firstLetter = State.assinante.nome.charAt(0).toUpperCase();
+        const colors = ['from-red-400 to-red-600', 'from-emerald-400 to-emerald-600', 'from-blue-400 to-blue-600', 'from-amber-400 to-amber-600', 'from-purple-400 to-purple-600', 'from-pink-400 to-pink-600'];
+        const colorIdx = State.assinante.nome.charCodeAt(0) % colors.length;
+        const bgGradient = colors[colorIdx];
+        const avatarHtml = '<div class="w-full h-full flex items-center justify-center bg-gradient-to-br ' + bgGradient + ' text-white font-black text-4xl">' + firstLetter + '</div>';
+        const notifBellHtml = unread > 0
+            ? '<button onclick="A.openNotifPanel()" class="relative px-3 py-2 bg-white/20 rounded-xl text-[9px] font-black border border-white/30 active:scale-95">🔔 <span class="absolute -top-1 -right-1 w-4 h-4 bg-remopink text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white">' + unread + '</span></button>'
+            : '';
+
+        const pendRt = A.pendingRatings();
+        const pendRtHtml = pendRt.length ? `<div onclick="A.goTo('historico')" class="glass-card mb-4 flex items-center justify-between py-3 cursor-pointer border-l-4 border-l-amber-400"><div class="flex items-center gap-3"><span class="text-xl">⭐</span><div><p class="text-xs font-black text-slate-800 text-left">Avaliação Pendente</p><p class="text-[9px] text-slate-500 font-bold">Você tem ${pendRt.length} remada(s) sem avaliar no histórico</p></div></div><span class="text-slate-300">❯</span></div>` : '';
+
+        return `
+            <div class="space-y-4 animate-fade-up">
+                <div class="bg-gradient-to-r from-remoblue to-remoblue-dark p-4 rounded-3xl border-2 border-white/50 shadow-float text-white flex justify-between items-center">
+                    <div><p class="text-[8px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Minha Conta</p><h2 class="text-lg font-black uppercase">Perfil</h2></div>
+                    ${notifBellHtml}
+                </div>
+
+                <!-- Avatar e Info -->
+                <div class="glass-card p-5 flex flex-col items-center text-center">
+                    <div class="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg mb-3 group bg-slate-100">
+                        ${avatarHtml}
+                    </div>
+                    <h3 class="text-base font-black text-slate-900 uppercase">${U.sanitize(State.assinante.nome)}</h3>
+                    <p class="text-[10px] font-bold text-slate-400 mt-0.5">📞 ${U.fmtPhone(State.assinante.telefone)||'(13) 99105-2169'}</p>
+                </div>
+
+                <!-- Plano -->
+                <div class="glass-card border-t-4 ${planoBorder}">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Plano Atual</p>
+                            <p class="text-sm font-black text-remopink uppercase">${plano}</p>
+                            <p class="text-[10px] font-bold text-slate-500 mt-1">Vencimento: ${vencStr}</p>
+                        </div>
+                        <div class="text-center bg-white border ${vencBorder} rounded-2xl px-3 py-2 shadow-inner">
+                            <span class="text-xl font-black ${diasColor} block">${diasVal}</span>
+                            <span class="text-[8px] font-black ${diasLblColor} uppercase">${diasLabel}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumo Rápido -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="glass-card text-center py-3">
+                        <span class="text-xl font-black text-remoblue block">${mine.length}</span>
+                        <span class="text-[8px] font-black text-slate-400 uppercase leading-tight">Total Reservas</span>
+                    </div>
+                    <div class="glass-card text-center py-3">
+                        <span class="text-xl font-black text-remogreen block">${concluidas}</span>
+                        <span class="text-[8px] font-black text-slate-400 uppercase leading-tight">Concluídas</span>
+                    </div>
+                    <div class="glass-card text-center py-3">
+                        <span class="text-xl font-black text-amber-500 block">${avgStars}</span>
+                        <span class="text-[8px] font-black text-slate-400 uppercase leading-tight">Nota Média</span>
+                    </div>
+                </div>
+
+                <!-- Pendências -->
+                ${pendRtHtml}
+
+                <!-- Ações -->
+                <div class="space-y-2">
+                    <button onclick="A.goTo('pagamento')" class="w-full glass-card flex items-center justify-between py-3.5 active:scale-95 transition-all cursor-pointer border-l-4 border-l-emerald-400">
+                        <div class="flex items-center gap-3"><span class="text-xl">💳</span><div><p class="text-sm font-black text-slate-800 text-left">Central de Pagamento</p><p class="text-[9px] text-slate-400 font-bold">Ver plano e pagar mensalidade</p></div></div>
+                        <span class="text-slate-300 font-black">›</span>
+                    </button>
+                    <button onclick="A.openNotifPanel()" class="w-full glass-card flex items-center justify-between py-3.5 active:scale-95 transition-all cursor-pointer">
+                        <div class="flex items-center gap-3"><span class="text-xl">🔔</span><div><p class="text-sm font-black text-slate-800 text-left">Notificações</p><p class="text-[9px] text-slate-400 font-bold">${Notif.load().length} avisos no total</p></div></div>
+                        <span class="text-slate-300 font-black">›</span>
+                    </button>
+                    <button onclick="A.openChangePassword()" class="w-full glass-card flex items-center justify-between py-3.5 active:scale-95 transition-all cursor-pointer">
+                        <div class="flex items-center gap-3"><span class="text-xl">🔐</span><div><p class="text-sm font-black text-slate-800 text-left">Mudar Minha Senha</p><p class="text-[9px] text-slate-400 font-bold">Alterar seu PIN de acesso</p></div></div>
+                        <span class="text-slate-300 font-black">›</span>
+                    </button>
+                    <a href="${U.waLink('Olá! Preciso de suporte com meu perfil/plano na Remoterapia.')}" target="_blank" class="w-full glass-card flex items-center justify-between py-3.5 active:scale-95 transition-all cursor-pointer block">
+                        <div class="flex items-center gap-3"><span class="text-xl">💬</span><div><p class="text-sm font-black text-slate-800">Falar com Suporte</p><p class="text-[9px] text-slate-400 font-bold">WhatsApp direto</p></div></div>
+                        <span class="text-slate-300 font-black">›</span>
+                    </a>
+                    <button onclick="A.logout()" class="w-full glass-card flex items-center justify-between py-3.5 active:scale-95 transition-all cursor-pointer border-l-4 border-l-red-300">
+                        <div class="flex items-center gap-3"><span class="text-xl">🚪</span><div><p class="text-sm font-black text-red-600 text-left">Sair da Conta</p><p class="text-[9px] text-slate-400 font-bold">Encerrar sessão</p></div></div>
+                        <span class="text-red-300 font-black">›</span>
+                    </button>
+                </div>
+            </div>`;
+    },
+    Pagamento: ()=>{
+        const dvStr = State.assinante?.data_vencimento || '';
+        const validDateStr = (dvStr && dvStr.includes('-')) ? dvStr : null;
+        const vencDate=validDateStr ? new Date(validDateStr+'T12:00:00') : new Date();
+        const diasRest=validDateStr ? Math.ceil((vencDate-new Date())/86400000) : NaN;
+        const vencStr=validDateStr ? U.fmtDateLong(validDateStr) : 'Não Informada';
+        const isVencido = diasRest < 0;
+
+        return `
+            <div class="space-y-4 flex-1 flex flex-col animate-fade-up">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-emerald-500 to-emerald-700 p-4 rounded-3xl border-2 border-white/50 shadow-float text-white flex justify-between items-center">
+                    <div>
+                        <p class="text-[8px] font-black text-emerald-200 uppercase tracking-[0.2em] mb-1">Central de Cobrança</p>
+                        <h2 class="text-lg font-black uppercase">Pagamento</h2>
+                    </div>
+                    <button onclick="A.goTo('home')" class="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-[9px] font-black border border-white/25 active:scale-95 transition-all flex items-center gap-1">
+                        <span>←</span> Voltar
+                    </button>
+                </div>
+
+                <div class="glass-card flex flex-col border-t-4 ${isVencido?'border-t-red-500':'border-t-emerald-500'} py-5 px-5 relative overflow-hidden">
+                    ${isVencido?'<div class="absolute inset-0 bg-red-500/10 pointer-events-none"></div>':''}
+                    <div class="relative z-10 flex flex-col items-center text-center">
+                        <span class="text-4xl mb-2">${isVencido?'⚠️':'✅'}</span>
+                        <h3 class="text-lg font-black uppercase ${isVencido?'text-red-600':'text-slate-800'}">${isVencido?'Plano Vencido':'Plano Ativo'}</h3>
+                        <p class="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">Vencimento: ${vencStr}</p>
+                        
+                        <div class="mt-4 bg-white/60 border border-slate-200 rounded-2xl w-full p-4 flex flex-col gap-1 items-center">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Status da Fatura</p>
+                            <span class="px-3 py-1 bg-white border ${isVencido?'border-red-300 text-red-600':'border-emerald-300 text-emerald-600'} text-xs font-black uppercase rounded-lg shadow-sm">
+                                ${isVencido?'Pendente':'Em dia'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 mt-2">
+                    <h3 class="text-sm font-black text-slate-800 uppercase mb-3 flex items-center gap-2"><span class="text-xl">💳</span> Método de Pagamento</h3>
+                    <p class="text-[10px] font-bold text-slate-500 mb-4 leading-relaxed">Em breve o pagamento via Cartão/PIX Automático pelo Mercado Pago estará liberado aqui. Por enquanto, utilize o PIX CNPJ direto da base.</p>
+                    
+                    <div class="bg-slate-50 p-4 rounded-xl border-2 border-slate-200 text-center mb-4 relative mt-6">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white border border-slate-200 px-3 py-0.5 rounded-full whitespace-nowrap">
+                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Chave PIX (CNPJ)</p>
+                        </div>
+                        <p class="text-lg mt-2 font-black text-remoblue font-mono select-all">43.267.403/0001-04</p>
+                        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Plorix / Base de Remo</p>
+                    </div>
+
+                    <button onclick="A.payWithMercadoPago()" class="w-full py-4 bg-slate-100 text-slate-400 font-black rounded-xl text-center text-[10px] uppercase tracking-widest mb-3 border-2 border-dashed border-slate-300 active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <span class="text-sm text-slate-400 opacity-80">🔒</span> Pagar Mercado Pago <span class="text-[8px] border border-slate-300 px-1.5 py-0.5 rounded-md">(Em breve)</span>
+                    </button>
+
+                    <a href="${U.waLink('Olá! Segue o comprovante de renovação da minha mensalidade. Meu nome é ' + State.assinante.nome)}" target="_blank" class="block w-full py-4 bg-gradient-to-r from-remopink to-remopink-dark text-white font-black rounded-xl text-center text-[10px] uppercase tracking-widest shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <span class="text-base">📱</span> Enviar Comprovante no Zap
+                    </a>
+                </div>
+            </div>
+        `;
+    },
+    RoleSelect: ()=>`
+        <div class="flex flex-col h-full justify-center space-y-6 animate-fade-up">
+            <div class="text-center">
+                <h2 class="text-2xl font-black uppercase text-remoblue-dark">Conta Administrador</h2>
+                <p class="text-xs font-bold text-slate-500 mt-2 uppercase tracking-widest">Escolha como deseja acessar</p>
+            </div>
+            <button onclick="A.enterClientMode()" class="glass-card p-6 border-l-4 border-remopink active:scale-95 transition-all flex items-center justify-between w-full">
+                <div class="text-left"><h3 class="text-lg font-black text-slate-800 uppercase">Acessar como Cliente</h3><p class="text-[9px] text-slate-500 font-bold mt-1 uppercase tracking-widest">Ver o site como os mensalistas</p></div>
+                <span class="text-2xl">🛶</span>
+            </button>
+            <button onclick="A.enterAdminMode()" class="glass-card p-6 border-l-4 border-remoblue active:scale-95 transition-all flex items-center justify-between w-full">
+                <div class="text-left"><h3 class="text-lg font-black text-slate-800 uppercase">Painel Admin</h3><p class="text-[9px] text-slate-500 font-bold mt-1 uppercase tracking-widest">Gerenciar sistema e clientes</p></div>
+                <span class="text-2xl">⚙️</span>
+            </button>
+        </div>`,
+
+    ForcePasswordChange: ()=>{
+        const step = State._tutorialStep || 0;
+        const nome = State.assinante?.nome?.split(' ')[0] || 'Bem-vindo';
+        const isGuardaria = State.assinante?.tipo_plano === 'guardaria';
+        
+        const regrasBody = isGuardaria ? 
+            '✓ Guardaria: <strong>Terça a Domingo das 06h às 10h</strong><br><br>✓ Agendamentos até às 19h do dia anterior' :
+            '✓ Você tem <strong>2 remadas por semana</strong><br><br>✓ Mensalista: <strong>Terça a Domingo das 06h às 08h ou 08h às 10h</strong><br><br>✓ Agendamentos até às 19h do dia anterior';
+
+        const steps = [
+            {
+                icon: '🌊',
+                title: `Olá, ${nome}!`,
+                subtitle: 'BEM-VINDO(A) À REMOTERAPIA',
+                body: 'Aqui você agenda suas remadas, acompanha reservas e gerencia sua mensalidade — tudo direto do seu celular de forma simples e rápida.',
+                color: 'from-remoblue to-remoblue-dark',
+                btn: 'Começar  ❯'
+            },
+            {
+                icon: '📅',
+                title: 'COMO AGENDAR',
+                subtitle: 'REGRAS DA BASE',
+                body: regrasBody,
+                color: 'from-remogreen to-emerald-700',
+                btn: 'Entendido  ❯'
+            },
+            {
+                icon: '💳',
+                title: 'PAGAMENTO',
+                subtitle: 'MENSALIDADE',
+                body: 'Pague sua mensalidade via <strong>PIX (CNPJ 43.267.403/0001-04)</strong> e envie o comprovante pelo WhatsApp. O sistema acompanha seu vencimento automaticamente.',
+                color: 'from-purple-500 to-purple-800',
+                btn: 'Avançar  ❯'
+            },
+            {
+                icon: '🔐',
+                title: 'CRIE SUA SENHA',
+                subtitle: 'PIN DE ACESSO DEFINITIVO',
+                body: 'Chegou a hora! Crie um PIN de <strong>6 dígitos</strong> para proteger sua conta e acessar o app.',
+                color: 'from-remopink to-remopink-dark',
+                btn: 'Salvar e Entrar no App'
+            }
+        ];
+        const s = steps[step];
+        const isLast = step === steps.length - 1;
+        const dots = steps.map((_,i)=>`<span style="width:${i===step?'2rem':'0.5rem'};height:0.5rem;border-radius:9999px;background:${i===step?'white':'rgba(255,255,255,.3)'};transition:all .3s ease;display:inline-block"></span>`).join('');
+
+        return `
+        <style>
+            @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+            .t-icon-container { animation: float 4s ease-in-out infinite; }
+        </style>
+        <div class="flex-1 flex flex-col animate-fade-up" style="min-height:100vh">
+            <div class="bg-gradient-to-br ${s.color} flex-1 flex flex-col p-8 pb-10" style="min-height:100vh; justify-content: space-between;">
+                <div class="flex-1 flex flex-col items-center justify-center text-center" style="margin-top: 2rem;">
+                    <div class="t-icon-container" style="width:7.5rem;height:7.5rem;background:rgba(255,255,255,.15);border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:3.5rem;margin-bottom:2.5rem;border:3px solid rgba(255,255,255,.3); box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                        ${s.icon}
+                    </div>
+                    <p style="font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.25em;color:rgba(255,255,255,.8);margin-bottom:.8rem">${s.subtitle}</p>
+                    <h2 style="font-size:2rem;font-weight:900;color:white;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1.5rem; line-height: 1.1;">${s.title}</h2>
+                    <p style="font-size:1rem;font-weight:500;color:rgba(255,255,255,.9);line-height:1.6;max-width:24rem; padding: 0 0.5rem;">${s.body}</p>
+
+                    ${isLast ? `
+                    <div style="width:100%;max-width:22rem;margin-top:2.5rem" class="animate-fade-up">
+                        <input type="password" id="new-pin"
+                               style="width:100%;padding:1rem;border-radius:1rem;border:3px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:white;font-size:1.6rem;text-align:center;letter-spacing:.8em;font-weight:900;outline:none;backdrop-filter:blur(10px); box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);"
+                               placeholder="******" maxlength="6" inputmode="numeric"
+                               onfocus="this.style.borderColor='white'; this.style.background='rgba(255,255,255,.25)'" onblur="this.style.borderColor='rgba(255,255,255,.5)'; this.style.background='rgba(255,255,255,.15)'">
+                        <p style="font-size:.7rem;font-weight:800;color:rgba(255,255,255,.7);margin-top:.8rem;text-transform:uppercase;letter-spacing:.1em">Digite 6 Números</p>
+                    </div>` : ''}
+                </div>
+
+                <div class="flex flex-col items-center gap-5" style="padding-bottom:1.5rem">
+                    <div style="display:flex;gap:.4rem;align-items:center">${dots}</div>
+                    <button onclick="${isLast ? 'A.saveNewPassword()' : `State._tutorialStep=${step+1};A.render()`}"
+                            style="width:100%;max-width:22rem;padding:1rem;background:white;border:none;border-radius:1rem;font-weight:900;font-size:.85rem;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:transform .15s;active:transform:scale(.97)"
+                            class="active:scale-95 transition-all">
+                        ${s.btn}
+                    </button>
+                    ${step > 0 && !isLast ? `<button onclick="State._tutorialStep=${step-1};A.render()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.75rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">← Voltar</button>` : ''}
+                    ${step === 0 ? `<button onclick="State._tutorialStep=3;A.render()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:.72rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">Pular tutorial</button>` : ''}
+                </div>
+            </div>
+        </div>`;
+    },
+    AdminHome: ()=>{
+        const todayStr=U.todayStr();
+        const hjBkgs=State.agendamentos.filter(a=>a.data_reserva===todayStr && a.status!=='cancelado');
+        const list=hjBkgs.map(a=>{
+            const nome=State.assinantes.find(x=>x.id===a.assinante_id)?.nome || a.assinante_nome || 'Cliente';
+            return `<div class="glass-card p-3 mb-2 flex justify-between items-center"><div class="min-w-0"><p class="text-sm font-black text-slate-800 truncate">${nome}</p><p class="text-[9px] text-slate-500 font-bold">${(a.horario_reserva||'').substring(0,5)} | ${(a.status||'').toUpperCase()}</p></div></div>`;
+        }).join('');
+        const totalClientes=State.assinantes.length;
+        const vencidos=State.assinantes.filter(a=>{
+            if(!a.data_vencimento) return false;
+            return new Date(a.data_vencimento+'T12:00:00') < new Date();
+        }).length;
+        return `<div class="space-y-4 animate-fade-up pb-8">
+            <div class="bg-gradient-to-r from-remoblue to-remoblue-dark p-4 rounded-3xl border-2 border-white/50 shadow-float text-white">
+                <p class="text-[8px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Visão Geral</p>
+                <h2 class="text-lg font-black uppercase">Painel Admin</h2>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div class="glass-card text-center py-4 border-t-4 border-t-remopink">
+                    <span class="text-2xl font-black text-remopink block">${hjBkgs.length}</span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hoje</span>
+                </div>
+                <div class="glass-card text-center py-4 border-t-4 border-t-remoblue">
+                    <span class="text-2xl font-black text-remoblue block">${totalClientes}</span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Clientes</span>
+                </div>
+                <div class="glass-card text-center py-4 border-t-4 border-t-red-400">
+                    <span class="text-2xl font-black text-red-500 block">${vencidos}</span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vencidos</span>
+                </div>
+            </div>
+            <div>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center mb-2">Movimentação do Dia</p>
+                ${list||'<div class="text-center py-6 glass-card border-dashed border-2"><p class="text-[10px] font-black text-slate-400 uppercase">Nenhuma reserva para hoje</p></div>'}
+            </div>
+            <button onclick="A.logout()" class="w-full py-3 bg-red-50 text-red-600 font-black rounded-xl uppercase tracking-widest text-xs border border-red-200 mt-4 active:scale-95">Encerrar Sessão</button>
+        </div>`;
+    },
+    AdminClientes: ()=>{
+        const fil = State.adminClientFilter || 'all';
+        const filtrados = State.assinantes.filter(a => {
+            if(fil === 'all') return true;
+            const dv = a.data_vencimento ? new Date(a.data_vencimento+'T12:00:00') : new Date();
+            const vencido = dv < new Date();
+            if(fil === 'ativos') return !vencido;
+            if(fil === 'vencidos') return vencido;
+            return true;
+        });
+
+        const list=filtrados.map(a=>{
+            let vStr = '';
+            let isVencido = false;
+            if(a.data_vencimento) {
+                const v = new Date(a.data_vencimento+'T12:00:00');
+                const diff = Math.ceil((v - new Date())/(1000*60*60*24));
+                isVencido = diff < 0;
+                vStr = `<p class="text-[9px] mt-1 font-bold ${isVencido?'text-red-500':'text-slate-500'}">Venc: ${v.toLocaleDateString('pt-BR')} ${isVencido?'(Vencido)':''}</p>`;
+            }
+            return `<div class="glass-card p-3 mb-2 border-l-4 ${a.tipo_plano==='guardaria'?'border-remogreen':'border-remopink'}">
+                <div class="flex justify-between items-start">
+                    <div class="min-w-0">
+                        <p class="text-sm font-black text-slate-800 truncate">${a.nome}</p>
+                        <p class="text-[9px] text-slate-500 font-bold">${U.fmtPhone(a.telefone)} | ${a.tipo_plano||'mensalista'}</p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="text-[8px] font-black px-2 py-0.5 rounded uppercase ${a.tipo_plano==='guardaria'?'bg-green-100 text-green-700':'bg-pink-100 text-pink-700'}">${a.tipo_plano}</span>
+                        ${isVencido ? `<button onclick="A.renovarMensalidade('${a.id}')" class="text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded uppercase active:scale-95">💳 Renovar</button>` : ''}
+                        <button onclick="A.openEditCliente('${a.id}')" class="text-[8px] font-black bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded uppercase active:scale-95">✏️ Editar</button>
+                        <button onclick="A.deleteCliente('${a.id}')" class="text-[8px] font-black bg-red-50 text-red-500 border border-red-200 px-2 py-0.5 rounded uppercase active:scale-95">🗑 Excluir</button>
+                    </div>
+                </div>
+                ${a.tipo_plano==='guardaria'&&a.equipamento?`<p class="text-[9px] mt-1 text-slate-500 font-bold uppercase">🛶 ${a.equipamento}</p>`:''}
+                ${vStr}
+            </div>`;
+        }).join('');
+
+        const btnAtivo = (f) => f === fil ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200';
+
+        const diasOptions = Array.from({length: 31}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
+
+        return `<div class="space-y-4 animate-fade-up pb-8">
+            <div class="bg-gradient-to-r from-remoblue to-remoblue-dark p-4 rounded-3xl border-2 border-white/50 shadow-float text-white">
+                <h2 class="text-lg font-black uppercase">Gestão de Clientes</h2>
+            </div>
+            <div class="glass-card p-4 space-y-3 border-t-4 border-t-remopink">
+                <p class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1 pb-1 border-b">Novo Cadastro</p>
+                <input type="text" id="c-nome" placeholder="Nome Completo" class="custom-input !py-2 !text-sm">
+                <input type="tel" id="c-tel" placeholder="(13) 12345-6789" class="custom-input !py-2 !text-sm" oninput="U.maskPhone(this)">
+                <input type="text" id="c-pin" placeholder="Senha PIN (6 dígitos)" maxlength="6" class="custom-input !py-2 !text-sm">
+                <select id="c-tipo" class="custom-input !py-2 !text-sm" onchange="document.getElementById('equip-wrap').style.display=this.value==='guardaria'?'block':'none'">
+                    <option value="mensalista">Mensalista (Caiaque da base)</option>
+                    <option value="guardaria">Guardaria (Equipamento próprio)</option>
+                </select>
+                <div id="equip-wrap" style="display:none">
+                    <select id="c-equip" class="custom-input !py-2 !text-sm mt-2">
+                        <option value="">-- Escolha o Equipamento --</option>
+                        ${State.caiaques.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <p class="text-[9px] font-bold text-slate-400 ml-1 mb-0.5 uppercase tracking-widest">Dia de Vencimento</p>
+                    <select id="c-venc" class="custom-input !py-2 !text-sm text-center">
+                        <option value="">-- Selecione o Dia --</option>
+                        ${diasOptions}
+                    </select>
+                </div>
+                <button id="btn-cadastrar" onclick="A.cadastrarCliente()" class="w-full py-3 bg-gradient-to-r from-remopink to-remopink-dark text-white font-black rounded-xl uppercase tracking-widest text-xs active:scale-95 shadow-glow mt-2">Salvar Cliente</button>
+            </div>
+            
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lista Cadastrada (${filtrados.length})</p>
+                    <div class="flex gap-1">
+                        <button onclick="A.setClientFilter('all')" class="text-[8px] font-black px-2 py-1 rounded uppercase border active:scale-95 transition-all ${btnAtivo('all')}">Todos</button>
+                        <button onclick="A.setClientFilter('ativos')" class="text-[8px] font-black px-2 py-1 rounded uppercase border active:scale-95 transition-all ${btnAtivo('ativos')}">Ativos</button>
+                        <button onclick="A.setClientFilter('vencidos')" class="text-[8px] font-black px-2 py-1 rounded uppercase border active:scale-95 transition-all ${btnAtivo('vencidos')}">Vencidos</button>
+                    </div>
+                </div>
+                ${list||'<div class="text-center py-6 glass-card border-dashed border-2"><p class="text-[10px] font-black text-slate-400 uppercase">Nenhum cliente neste filtro.</p></div>'}
+            </div>
+        </div>`;
+    },
+    AdminCalendario: ()=>{
+        const m=State.calMonth, y=m.getFullYear(), mo=m.getMonth();
+        const daysInM=U.daysInMonth(y,mo);
+        const firstDow=new Date(y,mo,1).getDay();
+        const cells=[];
+        for(let i=0;i<firstDow;i++) cells.push(`<div></div>`);
+        for(let d=1;d<=daysInM;d++){
+            const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dow=new Date(ds+'T12:00:00').getDay();
+            const isClosed=State.diasFechados.includes(ds);
+            const isSeg=dow===1;
+            let cls='cal-day border-2 '+(isSeg?'opacity-40 pointer-events-none':'cursor-pointer active:scale-90');
+            if(isClosed) cls+=' bg-red-100 border-red-300 text-red-600';
+            else cls+=' bg-white border-slate-200 text-slate-700';
+            cells.push('<div class="' + cls + '" onclick="A.toggleDia(\'' + ds + '\')">' + d + '</div>');
+        }
+        return `<div class="space-y-4 animate-fade-up pb-8">
+            <div class="bg-gradient-to-r from-remoblue to-remoblue-dark p-4 rounded-3xl border-2 border-white/50 shadow-float text-white">
+                <p class="text-[8px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Gerenciar Dias</p>
+                <h2 class="text-lg font-black uppercase">Abrir / Fechar</h2>
+            </div>
+            <div class="glass-card p-4">
+                <p class="text-[10px] font-black text-slate-500 uppercase leading-relaxed mb-4 text-center">Clique em um dia para bloquear (chuva/manutenção) ou reabrir. Segundas já são fechadas por padrão.</p>
+                <div class="flex items-center justify-between py-3 border-b mb-3 border-slate-100">
+                    <button onclick="A.prevMonth()" class="w-9 h-9 flex items-center justify-center text-remoblue bg-blue-50 rounded-xl active:scale-90 transition-all font-black">◀</button>
+                    <p class="text-sm font-black text-slate-800 uppercase tracking-widest">${U.monthName(m)}</p>
+                    <button onclick="A.nextMonth()" class="w-9 h-9 flex items-center justify-center text-remoblue bg-blue-50 rounded-xl active:scale-90 transition-all font-black">▶</button>
+                </div>
+                <div class="grid grid-cols-7 gap-1.5 mb-2 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                </div>
+                <div class="grid grid-cols-7 gap-1.5">${cells.join('')}</div>
+            </div>
+        </div>`;
+    }
+};
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async ()=>{
+    // Inicializa: primeiro hidrata do local (instantaneo), depois sincroniza nuvem em background
+    await DB.hydrate();
+    try {
+        const saved=localStorage.getItem(SESSION_KEY);
+        if(saved){ State.assinante=JSON.parse(saved); State.currentPage='home'; }
+        const prof=localStorage.getItem(PROFILE_KEY);
+        if(prof) State.profileData={...State.profileData,...JSON.parse(prof)};
+        State.avaliacoes=JSON.parse(localStorage.getItem('plorix_avaliacoes')||'[]');
+        State.diasFechados=JSON.parse(localStorage.getItem('plorix_dias_fechados')||'[]');
+    } catch(e){ localStorage.removeItem(SESSION_KEY); }
+    A.render(); // Renderiza imediatamente com dados locais
+    // Sincroniza nuvem em background sem bloquear
+    API.loadData().then(()=>A.render()).catch(()=>{});
+    // Refresh periodico (so pull, sem sobrescrever se mudancas locais pendentes)
+    setInterval(()=>{ if(State.currentPage!=='login'&&State.currentPage!=='forcePasswordChange'){ API.loadData().then(()=>A.render()).catch(()=>{}); }}, 90000);
+});
+</script>
+</body>
+</html>
